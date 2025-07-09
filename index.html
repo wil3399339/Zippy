@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Weed Life Game with Zippy</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #222;
+    color: #ddd;
+    user-select: none;
+  }
+  #game-container {
+    width: 800px;
+    margin: 20px auto;
+    background: #121212;
+    border: 2px solid #55aa55;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  #game-canvas {
+    background: #334433;
+    display: block;
+    margin: 0 auto;
+    border-bottom: 2px solid #55aa55;
+  }
+  #ui {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #55aa55;
+    border: none;
+    color: #222;
+    font-weight: bold;
+    padding: 8px 14px;
+    margin: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover {
+    background: #77cc77;
+  }
+  #laptop {
+    background: #000;
+    border: 2px solid #55aa55;
+    border-radius: 6px;
+    margin-top: 10px;
+    padding: 8px;
+    height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 14px;
+    color: #55ff55;
+  }
+  #rolling-area {
+    margin-top: 10px;
+    border: 2px solid #55aa55;
+    border-radius: 6px;
+    padding: 10px;
+    background: #1b2a1b;
+  }
+  #spliff-canvas {
+    background: #224422;
+    display: block;
+    margin: 10px auto;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="game-canvas" width="800" height="400"></canvas>
+  <div id="ui">
+    <div>
+      <div>Money: $<span id="money">1000</span></div>
+      <div>House: <span id="house-name">Shack</span></div>
+      <div>Weed Stock: <span id="weed-stock">0</span> g</div>
+      <div>Spliffs Rolled: <span id="spliffs-rolled">0</span></div>
+    </div>
+    <div>
+      <button id="buy-weed-btn">Buy Weed from Zippy ($100 / 10g)</button>
+      <button id="roll-spliff-btn" disabled>Roll a Spliff (10g)</button>
+      <button id="smoke-spliff-btn" disabled>Smoke Spliff</button>
+      <button id="upgrade-house-btn">Upgrade House</button>
+      <button id="open-laptop-btn">Open Laptop</button>
+    </div>
+  </div>
+
+  <div id="rolling-area" style="display:none;">
+    <h3>Roll Your Spliff</h3>
+    <canvas id="spliff-canvas" width="400" height="100"></canvas>
+    <div style="text-align:center;">
+      <button id="finish-roll-btn" disabled>Finish Rolling</button>
+      <button id="cancel-roll-btn">Cancel</button>
+    </div>
+    <p style="font-size:12px; color:#aaa;">Click & drag to pack the spliff tight. The fuller the pack, the better effect!</p>
+  </div>
+
+  <div id="laptop" style="display:none;">
+    <h3>Laptop Contacts</h3>
+    <strong>Dealers:</strong>
+    <ul id="dealer-list">
+      <li>Zippy - 555-weed</li>
+      <li>GreenJane - 555-buds</li>
+      <li>StickyRick - 555-stick</li>
+    </ul>
+    <strong>Customers:</strong>
+    <ul id="customer-list">
+      <li>Mike - 555-mike</li>
+      <li>Anna - 555-anna</li>
+      <li>Jax - 555-jax</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Game state
+  let money = 1000;
+  let weedStock = 0; // grams
+  let spliffsRolled = 0;
+  let currentHouseIndex = 0;
+  const houses = [
+    { name: "Shack", price: 0, imgColor: "#3d5a3d" },
+    { name: "Small House", price: 2000, imgColor: "#5a3d3d" },
+    { name: "Villa", price: 10000, imgColor: "#5a5a3d" },
+    { name: "Mansion", price: 50000, imgColor: "#3d3d5a" },
+  ];
+
+  // Weed buying & delivery
+  const weedPricePer10g = 100;
+  let deliveryTimeout = null;
+  let weedOnDelivery = false;
+
+  // Spliff rolling variables
+  let rolling = false;
+  let packAmount = 0; // 0 to 100 (percent packed)
+  let spliffQuality = 0; // based on packAmount
+
+  // Canvas and contexts
+  const canvas = document.getElementById("game-canvas");
+  const ctx = canvas.getContext("2d");
+
+  const spliffCanvas = document.getElementById("spliff-canvas");
+  const spliffCtx = spliffCanvas.getContext("2d");
+
+  // UI elements
+  const moneyEl = document.getElementById("money");
+  const houseNameEl = document.getElementById("house-name");
+  const weedStockEl = document.getElementById("weed-stock");
+  const spliffsRolledEl = document.getElementById("spliffs-rolled");
+
+  const buyWeedBtn = document.getElementById("buy-weed-btn");
+  const rollSpliffBtn = document.getElementById("roll-spliff-btn");
+  const smokeSpliffBtn = document.getElementById("smoke-spliff-btn");
+  const upgradeHouseBtn = document.getElementById("upgrade-house-btn");
+  const openLaptopBtn = document.getElementById("open-laptop-btn");
+
+  const laptopDiv = document.getElementById("laptop");
+  const rollingAreaDiv = document.getElementById("rolling-area");
+  const finishRollBtn = document.getElementById("finish-roll-btn");
+  const cancelRollBtn = document.getElementById("cancel-roll-btn");
+
+  // Update UI function
+  function updateUI() {
+    moneyEl.textContent = money.toFixed(2);
+    houseNameEl.textContent = houses[currentHouseIndex].name;
+    weedStockEl.textContent = weedStock.toFixed(1);
+    spliffsRolledEl.textContent = spliffsRolled;
+    // Enable roll if have at least 10g
+    rollSpliffBtn.disabled = weedStock < 10 || rolling;
+    smokeSpliffBtn.disabled = spliffsRolled === 0 || rolling;
+  }
+
+  // Draw house on main canvas
+  function drawHouse() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw house as a colored rectangle + roof
+    const house = houses[currentHouseIndex];
+    const houseX = canvas.width / 2 - 100;
+    const houseY = canvas.height / 2 - 100;
+    // House base
+    ctx.fillStyle = house.imgColor;
+    ctx.fillRect(houseX, houseY + 50, 200, 100);
+    // Roof
+    ctx.fillStyle = "#883333";
+    ctx.beginPath();
+    ctx.moveTo(houseX - 10, houseY + 50);
+    ctx.lineTo(houseX + 100, houseY);
+    ctx.lineTo(houseX + 210, houseY + 50);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw text "Your House"
+    ctx.fillStyle = "#aaffaa";
+    ctx.font = "24px Arial";
+    ctx.fillText("Your House", houseX + 40, houseY + 180);
+
+    // If weed delivery in progress, show delivery truck icon + countdown
+    if (weedOnDelivery) {
+      ctx.fillStyle = "#ffff00";
+      ctx.font = "30px Arial";
+      ctx.fillText("Zippy's Delivery 🚚", 10, 40);
+    }
+  }
+
+  // Buy weed function
+  function buyWeed() {
+    if (weedOnDelivery) {
+      alert("You already have a delivery coming!");
+      return;
+    }
+    if (money < weedPricePer10g) {
+      alert("Not enough money!");
+      return;
+    }
+    money -= weedPricePer10g;
+    updateUI();
+
+    weedOnDelivery = true;
+    drawHouse();
+
+    // Simulate delivery delay (5 seconds)
+    deliveryTimeout = setTimeout(() => {
+      weedStock += 10;
+      weedOnDelivery = false;
+      updateUI();
+      drawHouse();
+      alert("Zippy delivered 10g of weed!");
+    }, 5000);
+  }
+
+  // Upgrade house function
+  function upgradeHouse() {
+    if (currentHouseIndex >= houses.length - 1) {
+      alert("You already own the best house!");
+      return;
+    }
+    const nextHouse = houses[currentHouseIndex + 1];
+    if (money < nextHouse.price) {
+      alert(`Need $${nextHouse.price} to upgrade!`);
+      return;
+    }
+    money -= nextHouse.price;
+    currentHouseIndex++;
+    updateUI();
+    drawHouse();
+    alert(`Upgraded to ${nextHouse.name}!`);
+  }
+
+  // Rolling spliff functions
+  function startRolling() {
+    if (weedStock < 10) {
+      alert("Not enough weed to roll a spliff!");
+      return;
+    }
+    rolling = true;
+    packAmount = 0;
+    spliffQuality = 0;
+    rollingAreaDiv.style.display = "block";
+    buyWeedBtn.disabled = true;
+    rollSpliffBtn.disabled = true;
+    smokeSpliffBtn.disabled = true;
+    upgradeHouseBtn.disabled = true;
+    openLaptopBtn.disabled = true;
+    finishRollBtn.disabled = true;
+
+    drawSpliff();
+  }
+
+  function finishRolling() {
+    if (packAmount < 10) {
+      alert("You need to pack it more!");
+      return;
+    }
+    rolling = false;
+    rollingAreaDiv.style.display = "none";
+    weedStock -= 10;
+    spliffsRolled++;
+    spliffQuality = packAmount; // quality is proportional to how well you packed
+    updateUI();
+    buyWeedBtn.disabled = false;
+    rollSpliffBtn.disabled = false;
+    smokeSpliffBtn.disabled = false;
+    upgradeHouseBtn.disabled = false;
+    openLaptopBtn.disabled = false;
+
+    alert("Spliff rolled! Ready to smoke.");
+  }
+
+  function cancelRolling() {
+    rolling = false;
+    rollingAreaDiv.style.display = "none";
+    buyWeedBtn.disabled = false;
+    rollSpliffBtn.disabled = false;
+    smokeSpliffBtn.disabled = false;
+    upgradeHouseBtn.disabled = false;
+    openLaptopBtn.disabled = false;
+  }
+
+  // Draw spliff rolling UI
+  function drawSpliff() {
+    spliffCtx.clearRect(0, 0, spliffCanvas.width, spliffCanvas.height);
+
+    // Draw the rolling paper (rectangle)
+    spliffCtx.fillStyle = "#eee";
+    spliffCtx.fillRect(50, 30, 300, 40);
+
+    // Draw the packed weed inside the paper
+    const packedWidth = (packAmount / 100) * 300;
+    spliffCtx.fillStyle = "#228822";
+    spliffCtx.fillRect(50, 30, packedWidth, 40);
+
+    // Outline paper
+    spliffCtx.strokeStyle = "#444";
+    spliffCtx.lineWidth = 2;
+    spliffCtx.strokeRect(50, 30, 300, 40);
+
+    // Text instructions
+    spliffCtx.fillStyle = "#444";
+    spliffCtx.font = "16px Arial";
+    spliffCtx.fillText("Drag inside paper to pack weed", 120, 80);
+  }
+
+  // Handle mouse drag to pack spliff
+  let isDragging = false;
+  spliffCanvas.addEventListener("mousedown", (e) => {
+    if (!rolling) return;
+    const rect = spliffCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x >= 50 && x <= 350) {
+      isDragging = true;
+      packAmount = Math.min(100, ((x - 50) / 300) * 100);
+      drawSpliff();
+      finishRollBtn.disabled = packAmount < 10;
+    }
+  });
+
+  spliffCanvas.addEventListener("mousemove", (e) => {
+    if (!rolling || !isDragging) return;
+    const rect = spliffCanvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    x = Math.min(350, Math.max(50, x));
+    packAmount = Math.min(100, ((x - 50) / 300) * 100);
+    drawSpliff();
+    finishRollBtn.disabled = packAmount < 10;
+  });
+
+  spliffCanvas.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+  spliffCanvas.addEventListener("mouseleave", () => {
+    isDragging = false;
+  });
+
+  // Smoke spliff effects
+  // Different effects based on spliffQuality (randomize a bit)
+  function smokeSpliff() {
+    if (spliffsRolled === 0) {
+      alert("You have no spliffs to smoke!");
+      return;
+    }
+
+    spliffsRolled--;
+    updateUI();
+
+    // Effect duration (ms)
+    const effectDuration = 8000;
+
+    // Choose effect based on spliffQuality & random
+    const effectType = Math.floor(Math.random() * 3); // 0,1,2
+
+    const startTime = performance.now();
+
+    function applyEffect(time) {
+      const elapsed = time - startTime;
+      if (elapsed > effectDuration) {
+        ctx.filter = "none";
+        drawHouse();
+        return;
+      }
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw house but with effect
+      drawHouse();
+
+      // Apply visual effects:
+      switch (effectType) {
+        case 0:
+          // Blur + saturation pulsating
+          const blurVal = 2 + 2 * Math.sin(elapsed / 300);
+          const satVal = 150 + 50 * Math.sin(elapsed / 200);
+          ctx.filter = `blur(${blurVal}px) saturate(${satVal}%)`;
+          break;
+        case 1:
+          // Hue-rotate + wave distortion (simple)
+          const hueVal = (elapsed / 10) % 360;
+          ctx.filter = `hue-rotate(${hueVal}deg)`;
+          break;
+        case 2:
+          // Invert + brightness oscillation
+          const brightVal = 1 + 0.5 * Math.sin(elapsed / 300);
+          ctx.filter = `invert(1) brightness(${brightVal})`;
+          break;
+      }
+
+      // Redraw house with filter (need to redraw inside filter)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHouse();
+
+      requestAnimationFrame(applyEffect);
+    }
+    requestAnimationFrame(applyEffect);
+  }
+
+  // Laptop toggle
+  let laptopOpen = false;
+  openLaptopBtn.addEventListener("click", () => {
+    laptopOpen = !laptopOpen;
+    laptopDiv.style.display = laptopOpen ? "block" : "none";
+  });
+
+  // Button events
+  buyWeedBtn.addEventListener("click", buyWeed);
+  upgradeHouseBtn.addEventListener("click", upgradeHouse);
+  rollSpliffBtn.addEventListener("click", startRolling);
+  finishRollBtn.addEventListener("click", finishRolling);
+  cancelRollBtn.addEventListener("click", cancelRolling);
+  smokeSpliffBtn.addEventListener("click", smokeSpliff);
+
+  // Initial draw and UI update
+  drawHouse();
+  updateUI();
+})();
+</script>
+
+</body>
+</html>
