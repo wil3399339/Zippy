@@ -3,465 +3,399 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>2D Weed Life Game - With Baccy and Variable Weed Buying</title>
+<title>Weed Game with Character, Spliffs & Bong</title>
 <style>
   body {
-    margin: 0;
-    background: #111;
-    color: #ddd;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: Arial, sans-serif;
+    background: #222;
+    color: #eee;
+    margin: 0; padding: 0;
     overflow: hidden;
-    user-select: none;
   }
   #game-container {
-    width: 800px;
-    height: 600px;
-    margin: 20px auto;
-    background: #223322;
-    border: 3px solid #55aa55;
-    border-radius: 8px;
-    position: relative;
+    display: flex;
+    height: 100vh;
   }
   #game-canvas {
+    background: #2a2a2a;
     display: block;
-    background: #447744;
-    border-radius: 6px;
+    margin: 0 auto;
+    border: 2px solid #555;
+    flex-grow: 1;
+    position: relative;
+    z-index: 1;
   }
-  #ui-bar {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 80px;
-    background: #112211cc;
-    color: #aaffaa;
-    font-size: 18px;
-    padding: 10px 20px;
+  #ui-panel {
+    width: 320px;
+    background: #333;
+    padding: 10px;
     box-sizing: border-box;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    overflow-y: auto;
   }
   button {
-    background: #55aa55;
+    background: #4a8cff;
     border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    color: white;
     font-weight: bold;
     cursor: pointer;
-    transition: background 0.3s;
+    border-radius: 4px;
   }
-  button:hover {
-    background: #77cc77;
+  button:disabled {
+    background: #666;
+    cursor: not-allowed;
   }
-  #laptop-ui, #roll-ui, #message-box, #buy-ui {
-    position: absolute;
-    background: #002200ee;
-    border: 2px solid #55aa55;
-    border-radius: 8px;
-    padding: 15px;
-    width: 500px;
-    max-height: 400px;
+  h2, h3 {
+    margin-top: 10px;
+  }
+  #messages {
+    height: 80px;
+    background: #222;
+    margin: 8px 0;
+    padding: 6px;
+    font-size: 0.9em;
     overflow-y: auto;
-    color: #aaffaa;
-    font-family: monospace;
-    font-size: 14px;
-    display: none;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
+    border: 1px solid #555;
+    border-radius: 4px;
   }
-  #roll-ui canvas {
-    background: #224422;
+  #laptop-ui, #roll-ui, #buy-ui, #customer-order-ui {
+    background: #444;
+    padding: 8px;
+    margin-top: 10px;
     border-radius: 6px;
-    display: block;
-    margin: 10px auto;
+    display: none;
   }
-  #message-box {
-    width: 350px;
-    text-align: center;
-    font-size: 16px;
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
   }
-  label, input[type=number], input[type=range] {
+  ul li {
+    margin-bottom: 5px;
+  }
+  ul li button {
+    width: 100%;
+    text-align: left;
+  }
+  label {
     display: block;
-    margin: 6px 0;
+    margin-top: 6px;
   }
   input[type=range] {
-    width: 90%;
+    width: 100%;
   }
 </style>
 </head>
 <body>
-
 <div id="game-container">
-  <canvas id="game-canvas" width="800" height="520"></canvas>
-  
-  <div id="ui-bar">
-    <div>
-      Money: $<span id="money">1000</span> | Weed: <span id="weed-stock">0</span>g | Spliffs: <span id="spliffs">0</span> | House: <span id="house-name">Shack</span>
-    </div>
-    <div>
-      <button id="open-laptop-btn">Open Laptop</button>
-      <button id="roll-spliff-btn" disabled>Roll Spliff</button>
-      <button id="smoke-spliff-btn" disabled>Smoke Spliff</button>
-    </div>
-  </div>
-  
-  <!-- Laptop UI -->
-  <div id="laptop-ui">
-    <h3>Laptop Contacts</h3>
-    <strong>Dealers:</strong>
-    <ul>
-      <li>Zippy - 555-WEED</li>
-      <li>GreenJane - 555-BUDS</li>
-      <li>StickyRick - 555-STICK</li>
-    </ul>
-    <strong>Customers:</strong>
-    <ul>
-      <li>Mike - 555-MIKE</li>
-      <li>Anna - 555-ANNA</li>
-      <li>Jax - 555-JAX</li>
-    </ul>
-    <button id="close-laptop-btn">Close Laptop</button>
-  </div>
-  
-  <!-- Buy weed UI -->
-  <div id="buy-ui">
-    <h3>Buy Weed from Zippy</h3>
-    <label for="buy-amount">Amount (grams):</label>
-    <input type="number" id="buy-amount" min="1" step="1" value="10" />
-    <p>Price per gram: $10</p>
-    <p>Total price: $<span id="total-price">100</span></p>
-    <button id="confirm-buy-btn">Buy</button>
-    <button id="cancel-buy-btn">Cancel</button>
-  </div>
-  
-  <!-- Roll spliff UI -->
-  <div id="roll-ui">
-    <h3>Roll Your Spliff</h3>
-    <canvas id="roll-canvas" width="400" height="100"></canvas>
-    <label for="baccy-range">Add Baccy (Tobacco) % (0% = pure weed): <span id="baccy-percent">0%</span></label>
-    <input type="range" id="baccy-range" min="0" max="100" value="0" />
-    <div style="text-align:center;">
+  <canvas id="game-canvas" width="640" height="480"></canvas>
+  <div id="ui-panel">
+    <h2>Player Stats</h2>
+    <div><strong>Money:</strong> $<span id="money">10000</span></div>
+    <div><strong>Weed Stock:</strong> <span id="weed-stock">0.0</span> g</div>
+    <div><strong>Spliffs:</strong> <span id="spliffs">0</span></div>
+    <div><strong>Bong Weed:</strong> <span id="bong-weed">0.0</span> g</div>
+    <button id="roll-spliff-btn">Roll Spliff</button>
+    <button id="smoke-spliff-btn">Smoke Spliff</button>
+    <hr />
+    <button id="fill-bong-btn">Fill Bong with Weed (1g)</button>
+    <button id="smoke-bong-btn">Smoke Bong</button>
+    <hr />
+    <button id="open-laptop-btn">Open Laptop</button>
+
+    <div id="messages"></div>
+
+    <!-- Rolling UI -->
+    <div id="roll-ui">
+      <h3>Roll a Spliff</h3>
+      <label>Pack Amount: <span id="pack-amount-label">0%</span></label>
+      <input type="range" id="pack-amount" min="0" max="100" value="0" />
+      <label>Baccy Percentage: <span id="baccy-percent-label">0%</span></label>
+      <input type="range" id="baccy-percent" min="0" max="100" value="0" />
       <button id="finish-roll-btn" disabled>Finish Rolling</button>
       <button id="cancel-roll-btn">Cancel</button>
     </div>
-    <p style="font-size:12px; color:#aaa;">Drag to pack the spliff. The fuller the pack, the better the effect!</p>
-  </div>
-  
-  <!-- Message Box -->
-  <div id="message-box">
-    <p id="message-text"></p>
-    <button id="msg-ok-btn">OK</button>
+
+    <!-- Laptop UI -->
+    <div id="laptop-ui">
+      <h3>Laptop Contacts</h3>
+      <strong>Dealers:</strong>
+      <ul id="dealer-list"></ul>
+      <strong>Customers:</strong>
+      <ul id="customer-list"></ul>
+      <button id="close-laptop-btn">Close Laptop</button>
+    </div>
+
+    <!-- Buy UI -->
+    <div id="buy-ui">
+      <h3 id="buy-ui-title">Buy Weed</h3>
+      <p>Price per gram: $<span id="price-per-gram">10</span></p>
+      <div>
+        <button class="buy-amount-btn" data-amount="2">Buy 2g</button>
+        <button class="buy-amount-btn" data-amount="5">Buy 5g</button>
+        <button class="buy-amount-btn" data-amount="10">Buy 10g</button>
+      </div>
+      <button id="cancel-buy-btn">Cancel</button>
+    </div>
+
+    <!-- Customer Order UI -->
+    <div id="customer-order-ui">
+      <h3>Customer Order</h3>
+      <p><span id="customer-name"></span> wants to buy <span id="customer-amount"></span>g of weed.</p>
+      <button id="accept-order-btn">Accept Order</button>
+      <button id="reject-order-btn">Reject Order</button>
+      <button id="close-order-btn">Close</button>
+    </div>
   </div>
 </div>
 
 <script>
 (() => {
-  // Game Constants
-  const houses = [
-    { name: "Shack", price: 0, color: "#3d5a3d", size: 80 },
-    { name: "Small House", price: 2000, color: "#5a3d3d", size: 120 },
-    { name: "Villa", price: 10000, color: "#5a5a3d", size: 160 },
-    { name: "Mansion", price: 50000, color: "#3d3d5a", size: 220 },
-  ];
-  const weedPricePerGram = 10;
-  const deliveryTimeMs = 4000;
+  // Canvas setup
   const canvas = document.getElementById("game-canvas");
   const ctx = canvas.getContext("2d");
 
-  // Player object
-  const player = {
-    x: 400,
-    y: 420,
-    size: 32,
-    color: "#ffeeaa",
-    speed: 3,
-  };
+  // UI elements
+  const moneySpan = document.getElementById("money");
+  const weedStockSpan = document.getElementById("weed-stock");
+  const spliffsSpan = document.getElementById("spliffs");
+  const bongWeedSpan = document.getElementById("bong-weed");
 
-  // Dealer (Zippy) object
-  const dealer = {
-    x: 150,
-    y: 420,
-    size: 32,
-    color: "#aaeeaa",
-  };
-
-  // House position (right center)
-  const housePos = { x: 600, y: 420 };
-
-  // Game state variables
-  let money = 1000;
-  let weedStock = 0;
-  let spliffs = 0;
-  let currentHouseIndex = 0;
-
-  // Delivery state
-  let deliveryTimer = null;
-  let deliveryInProgress = false;
-
-  // Spliff rolling state
-  let rolling = false;
-  let packAmount = 0;
-  let spliffQuality = 0;
-  let baccyPercent = 0;
-
-  // UI Elements
-  const moneyEl = document.getElementById("money");
-  const weedStockEl = document.getElementById("weed-stock");
-  const spliffsEl = document.getElementById("spliffs");
-  const houseNameEl = document.getElementById("house-name");
-
-  const openLaptopBtn = document.getElementById("open-laptop-btn");
   const rollSpliffBtn = document.getElementById("roll-spliff-btn");
   const smokeSpliffBtn = document.getElementById("smoke-spliff-btn");
+  const openLaptopBtn = document.getElementById("open-laptop-btn");
 
-  const laptopUI = document.getElementById("laptop-ui");
-  const closeLaptopBtn = document.getElementById("close-laptop-btn");
+  const fillBongBtn = document.getElementById("fill-bong-btn");
+  const smokeBongBtn = document.getElementById("smoke-bong-btn");
 
-  const buyUI = document.getElementById("buy-ui");
-  const buyAmountInput = document.getElementById("buy-amount");
-  const totalPriceSpan = document.getElementById("total-price");
-  const confirmBuyBtn = document.getElementById("confirm-buy-btn");
-  const cancelBuyBtn = document.getElementById("cancel-buy-btn");
+  const messagesDiv = document.getElementById("messages");
 
+  // Roll UI
   const rollUI = document.getElementById("roll-ui");
-  const rollCanvas = document.getElementById("roll-canvas");
-  const rollCtx = rollCanvas.getContext("2d");
+  const packAmountInput = document.getElementById("pack-amount");
+  const packAmountLabel = document.getElementById("pack-amount-label");
+  const baccyPercentInput = document.getElementById("baccy-percent");
+  const baccyPercentLabel = document.getElementById("baccy-percent-label");
   const finishRollBtn = document.getElementById("finish-roll-btn");
   const cancelRollBtn = document.getElementById("cancel-roll-btn");
-  const baccyRange = document.getElementById("baccy-range");
-  const baccyPercentLabel = document.getElementById("baccy-percent");
 
-  const messageBox = document.getElementById("message-box");
-  const messageText = document.getElementById("message-text");
-  const msgOkBtn = document.getElementById("msg-ok-btn");
+  // Laptop UI
+  const laptopUI = document.getElementById("laptop-ui");
+  const dealerListEl = document.getElementById("dealer-list");
+  const customerListEl = document.getElementById("customer-list");
+  const closeLaptopBtn = document.getElementById("close-laptop-btn");
 
-  // Keyboard input state
-  const keysDown = {};
+  // Buy UI
+  const buyUI = document.getElementById("buy-ui");
+  const pricePerGramSpan = document.getElementById("price-per-gram");
+  const buyAmountBtns = buyUI.querySelectorAll(".buy-amount-btn");
+  const cancelBuyBtn = document.getElementById("cancel-buy-btn");
 
-  // Show message helper
-  function showMessage(text, callback) {
-    messageText.textContent = text;
-    messageBox.style.display = "block";
-    msgOkBtn.onclick = () => {
-      messageBox.style.display = "none";
-      if (callback) callback();
-    };
+  // Customer Order UI
+  const customerOrderUI = document.getElementById("customer-order-ui");
+  const customerNameSpan = document.getElementById("customer-name");
+  const customerAmountSpan = document.getElementById("customer-amount");
+  const acceptOrderBtn = document.getElementById("accept-order-btn");
+  const rejectOrderBtn = document.getElementById("reject-order-btn");
+  const closeOrderBtn = document.getElementById("close-order-btn");
+
+  // Game state
+  let money = 10000;
+  let weedStock = 0;
+  let spliffs = 0;
+  let bongWeed = 0;
+
+  // Player character state
+  const player = {
+    x: canvas.width / 2,
+    y: canvas.height - 80,
+    size: 40,
+  };
+  const playerState = {
+    mode: "normal", // normal, rolling, smokingSpliff, smokingBong
+    smokeTimer: 0,
+    rollTimer: 0,
+  };
+
+  // Rolling spliff state
+  let rolling = false;
+  let packAmount = 0; // 0-100 percent
+  let baccyPercent = 0; // 0-100 percent
+
+  // Dealers and customers
+  const dealers = [
+    { name: "Zippy", phone: "555-WEED", pricePerGram: 10 },
+    { name: "GreenJane", phone: "555-BUDS", pricePerGram: 12 },
+    { name: "StickyRick", phone: "555-STICK", pricePerGram: 8 },
+  ];
+
+  const customers = [
+    { name: "Mike", phone: "555-MIKE" },
+    { name: "Anna", phone: "555-ANNA" },
+    { name: "Jax", phone: "555-JAX" },
+  ];
+
+  // Messaging helper
+  function showMessage(msg) {
+    const p = document.createElement("div");
+    p.textContent = msg;
+    messagesDiv.appendChild(p);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  // Update UI
   function updateUI() {
-    moneyEl.textContent = money.toFixed(2);
-    weedStockEl.textContent = weedStock.toFixed(1);
-    spliffsEl.textContent = spliffs;
-    houseNameEl.textContent = houses[currentHouseIndex].name;
+    moneySpan.textContent = money.toFixed(2);
+    weedStockSpan.textContent = weedStock.toFixed(2);
+    spliffsSpan.textContent = spliffs;
+    bongWeedSpan.textContent = bongWeed.toFixed(2);
 
-    rollSpliffBtn.disabled = weedStock < 1 || rolling;
-    smokeSpliffBtn.disabled = spliffs === 0 || rolling;
+    // Buttons disable logic
+    smokeSpliffBtn.disabled = spliffs <= 0 || playerState.mode !== "normal";
+    rollSpliffBtn.disabled = rolling || playerState.mode !== "normal";
+    fillBongBtn.disabled = weedStock < 1 || playerState.mode !== "normal";
+    smokeBongBtn.disabled = bongWeed < 0.1 || playerState.mode !== "normal";
+    openLaptopBtn.disabled = playerState.mode !== "normal";
   }
 
-  // Draw player
+  // Draw player function
   function drawPlayer() {
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x - player.size/2, player.y - player.size, player.size, player.size);
-  }
-
-  // Draw dealer
-  function drawDealer() {
-    ctx.fillStyle = dealer.color;
-    ctx.fillRect(dealer.x - dealer.size/2, dealer.y - dealer.size, dealer.size, dealer.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "14px monospace";
-    ctx.fillText("Zippy", dealer.x - 20, dealer.y - dealer.size - 10);
-  }
-
-  // Draw house
-  function drawHouse() {
-    const h = houses[currentHouseIndex];
-    ctx.fillStyle = h.color;
-    ctx.fillRect(housePos.x - h.size/2, housePos.y - h.size, h.size, h.size);
-    ctx.fillStyle = "#fff";
-    ctx.font = "14px monospace";
-    ctx.fillText(h.name, housePos.x - h.size/2, housePos.y - h.size - 10);
-  }
-
-  // Draw game scene
-  function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawHouse();
-    drawDealer();
-    drawPlayer();
+
+    // Body circle
+    ctx.fillStyle = "#ffeeaa";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y - player.size / 2, player.size / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    const eyeY = player.y - player.size / 2 - 8;
+    const eyeOffsetX = 10;
+    ctx.fillStyle =
+      playerState.mode === "smokingSpliff" || playerState.mode === "smokingBong"
+        ? "red"
+        : "black";
+
+    // Left eye
+    ctx.beginPath();
+    ctx.ellipse(player.x - eyeOffsetX, eyeY, 5, 7, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Right eye
+    ctx.beginPath();
+    ctx.ellipse(player.x + eyeOffsetX, eyeY, 5, 7, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Rolling animation
+    if (playerState.mode === "rolling") {
+      const rollPhase = Math.sin(Date.now() / 200) * 10;
+      ctx.fillStyle = "#ccaa55";
+      // two rolling hands rectangles
+      ctx.fillRect(player.x - 20 + rollPhase, player.y - player.size / 2, 14, 6);
+      ctx.fillRect(player.x + 10 + rollPhase, player.y - player.size / 2, 14, 6);
+    }
+
+    // Bong smoking animation: show bong near mouth
+    if (playerState.mode === "smokingBong") {
+      ctx.fillStyle = "#4db8ff"; // blue bong
+      ctx.fillRect(player.x + 15, player.y - player.size / 2 + 5, 12, 25);
+      // bong bowl with smoke
+      ctx.fillStyle = "#ccc";
+      ctx.beginPath();
+      ctx.arc(player.x + 21, player.y - player.size / 2 + 5, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw smoke (simple puffs)
+      const puffCount = 6;
+      for (let i = 0; i < puffCount; i++) {
+        const x = player.x + 25 + Math.sin(Date.now() / 400 + i) * 6;
+        const y = player.y - player.size / 2 - i * 12 - (Date.now() / 300) % 10;
+        const alpha = 0.3 + 0.3 * Math.sin(Date.now() / 500 + i);
+        ctx.fillStyle = `rgba(200,200,200,${alpha.toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 10 - i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
-  // Movement and boundaries
-  function updatePlayerPosition() {
-    if (rolling || laptopUI.style.display === "block" || buyUI.style.display === "block" || messageBox.style.display === "block") {
-      return; // no movement during UI or rolling or message or buying
-    }
-    if (keysDown["ArrowUp"]) player.y -= player.speed;
-    if (keysDown["ArrowDown"]) player.y += player.speed;
-    if (keysDown["ArrowLeft"]) player.x -= player.speed;
-    if (keysDown["ArrowRight"]) player.x += player.speed;
+  // Smoke particles for spliff smoking
+  let smokeParticles = [];
+  let smokeActive = false;
 
-    // Boundaries
-    player.x = Math.min(canvas.width - player.size/2, Math.max(player.size/2, player.x));
-    player.y = Math.min(canvas.height, Math.max(player.size, player.y));
-  }
-
-  // Check if player near object
-  function isNear(x1, y1, x2, y2, range = 40) {
-    return Math.abs(x1 - x2) < range && Math.abs(y1 - y2) < range;
-  }
-
-  // Interaction when pressing space
-  function checkInteractions() {
-    if (isNear(player.x, player.y, dealer.x, dealer.y)) {
-      if (!deliveryInProgress) openBuyUI();
-      else showMessage("Delivery in progress. Please wait.");
-      return;
+  function startSmokeEffect() {
+    smokeActive = true;
+    smokeParticles = [];
+    playerState.smokeTimer = 7000; // 7 seconds
+    for (let i = 0; i < 50; i++) {
+      smokeParticles.push({
+        x: player.x,
+        y: player.y - player.size / 2 - 10,
+        size: Math.random() * 20 + 10,
+        alpha: 1,
+        speedX: (Math.random() - 0.5) * 1.5,
+        speedY: -(Math.random() * 1 + 0.5),
+      });
     }
-    if (isNear(player.x, player.y, housePos.x, housePos.y)) {
-      tryUpgradeHouse();
-      return;
-    }
-    showMessage("Nothing interesting nearby.");
-  }
-
-  // Open buy UI
-  function openBuyUI() {
-    buyUI.style.display = "block";
-    buyAmountInput.value = "10";
-    updateTotalPrice();
-  }
-
-  // Update total price in buy UI
-  function updateTotalPrice() {
-    const amount = parseFloat(buyAmountInput.value);
-    if (isNaN(amount) || amount < 1) {
-      totalPriceSpan.textContent = "0";
-      confirmBuyBtn.disabled = true;
-      return;
-    }
-    const total = amount * weedPricePerGram;
-    totalPriceSpan.textContent = total.toFixed(2);
-    confirmBuyBtn.disabled = total > money;
-  }
-
-  // Confirm buy weed
-  confirmBuyBtn.onclick = () => {
-    const amount = parseFloat(buyAmountInput.value);
-    if (isNaN(amount) || amount < 1) {
-      alert("Enter a valid amount.");
-      return;
-    }
-    const totalCost = amount * weedPricePerGram;
-    if (totalCost > money) {
-      alert("Not enough money!");
-      return;
-    }
-    money -= totalCost;
-    buyUI.style.display = "none";
-    deliveryInProgress = true;
-    showMessage(`Order placed! Zippy is delivering ${amount.toFixed(1)}g...`);
     setTimeout(() => {
-      weedStock += amount;
-      deliveryInProgress = false;
-      showMessage(`Delivery arrived! You got ${amount.toFixed(1)} grams of weed.`);
-    }, deliveryTimeMs);
-    updateUI();
-  };
-  cancelBuyBtn.onclick = () => {
-    buyUI.style.display = "none";
-  };
-  buyAmountInput.oninput = () => {
-    updateTotalPrice();
-  };
-
-  // House upgrade
-  function tryUpgradeHouse() {
-    if (currentHouseIndex >= houses.length - 1) {
-      showMessage("You already own the best house.");
-      return;
-    }
-    const nextHouse = houses[currentHouseIndex + 1];
-    if (money >= nextHouse.price) {
-      money -= nextHouse.price;
-      currentHouseIndex++;
-      showMessage(`Upgraded to ${nextHouse.name}!`);
-    } else {
-      showMessage(`Need $${nextHouse.price} to upgrade to ${nextHouse.name}.`);
-    }
-    updateUI();
+      smokeActive = false;
+      playerState.mode = "normal";
+      updateUI();
+    }, 7000);
   }
 
-  // Laptop UI buttons
-  openLaptopBtn.onclick = () => {
-    laptopUI.style.display = "block";
-  };
-  closeLaptopBtn.onclick = () => {
-    laptopUI.style.display = "none";
-  };
+  function drawSmoke() {
+    if (!smokeActive) return;
+    for (const p of smokeParticles) {
+      ctx.fillStyle = `rgba(200,200,200,${p.alpha.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
 
-  // Rolling spliff UI logic
+      // Update smoke particle
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.alpha -= 0.005;
+      if (p.alpha < 0) p.alpha = 0;
+    }
+    // Remove invisible particles
+    smokeParticles = smokeParticles.filter((p) => p.alpha > 0);
+  }
+
+  // Rolling spliff UI and logic
   rollSpliffBtn.onclick = () => {
+    if (playerState.mode !== "normal") return;
     rolling = true;
     packAmount = 0;
-    spliffQuality = 0;
     baccyPercent = 0;
     rollUI.style.display = "block";
     finishRollBtn.disabled = true;
-    baccyRange.value = 0;
+    packAmountInput.value = 0;
+    packAmountLabel.textContent = "0%";
+    baccyPercentInput.value = 0;
     baccyPercentLabel.textContent = "0%";
-    drawRollCanvas();
+    playerState.mode = "rolling";
+    updateUI();
   };
 
-  cancelRollBtn.onclick = () => {
-    rolling = false;
-    rollUI.style.display = "none";
+  packAmountInput.oninput = () => {
+    packAmount = Number(packAmountInput.value);
+    packAmountLabel.textContent = packAmount + "%";
+    finishRollBtn.disabled = packAmount < 50; // Require at least 50% pack
   };
-
-  // Roll canvas interaction for packing
-  let isPacking = false;
-
-  rollCanvas.onmousedown = (e) => {
-    isPacking = true;
-    packAmount = 0;
-    spliffQuality = 0;
-    drawRollCanvas();
-  };
-  rollCanvas.onmouseup = () => {
-    isPacking = false;
-    finishRollBtn.disabled = packAmount < 50;
-  };
-  rollCanvas.onmousemove = (e) => {
-    if (!isPacking) return;
-    const rect = rollCanvas.getBoundingClientRect();
-    let x = e.clientX - rect.left;
-    packAmount = Math.min(100, Math.max(0, (x / rollCanvas.width) * 100));
-    spliffQuality = packAmount / 100;
-    drawRollCanvas();
-    finishRollBtn.disabled = packAmount < 50;
-  };
-
-  baccyRange.oninput = () => {
-    baccyPercent = parseInt(baccyRange.value);
+  baccyPercentInput.oninput = () => {
+    baccyPercent = Number(baccyPercentInput.value);
     baccyPercentLabel.textContent = baccyPercent + "%";
   };
 
   finishRollBtn.onclick = () => {
-    if (weedStock < 1) {
-      showMessage("Not enough weed to roll!");
+    if (weedStock <= 0) {
+      showMessage("No weed to roll a spliff!");
       return;
     }
-    if (packAmount < 50) {
-      showMessage("You need to pack the spliff at least 50%.");
-      return;
-    }
-    // Calculate weed needed based on pack and baccy %
-    // Assume 1 unit pack = 1 gram spliff, scaled by packAmount
-    let spliffWeight = (packAmount / 100) * 1; // 1g max spliff weight for full pack
-    let weedNeeded = spliffWeight * (1 - baccyPercent / 100);
+    // Calculate weed needed for spliff (1g spliff max)
+    const spliffWeight = (packAmount / 100) * 1; // max 1g spliff
+    const weedNeeded = spliffWeight * (1 - baccyPercent / 100);
     if (weedNeeded > weedStock) {
       showMessage(`Not enough weed! Need ${weedNeeded.toFixed(2)}g.`);
       return;
@@ -470,105 +404,207 @@
     spliffs++;
     rolling = false;
     rollUI.style.display = "none";
-    showMessage(`Rolled a spliff with quality ${(spliffQuality*100).toFixed(0)}% and ${baccyPercent}% baccy.`);
+    playerState.mode = "normal";
+    showMessage(
+      `Rolled a spliff: ${spliffWeight.toFixed(2)}g with ${baccyPercent}% baccy.`
+    );
     updateUI();
   };
 
-  function drawRollCanvas() {
-    rollCtx.clearRect(0, 0, rollCanvas.width, rollCanvas.height);
-    rollCtx.fillStyle = "#332211";
-    rollCtx.fillRect(0, rollCanvas.height / 2 - 10, rollCanvas.width, 20);
-    // Draw pack fill
-    const fillWidth = (packAmount / 100) * rollCanvas.width;
-    rollCtx.fillStyle = "#88cc44";
-    rollCtx.fillRect(0, rollCanvas.height / 2 - 10, fillWidth, 20);
+  cancelRollBtn.onclick = () => {
+    rolling = false;
+    rollUI.style.display = "none";
+    playerState.mode = "normal";
+    updateUI();
+  };
 
-    rollCtx.strokeStyle = "#aaffaa";
-    rollCtx.lineWidth = 2;
-    rollCtx.strokeRect(0, rollCanvas.height / 2 - 10, rollCanvas.width, 20);
-  }
-
-  // Smoking spliff effect
+  // Smoking spliff
   smokeSpliffBtn.onclick = () => {
-    if (spliffs === 0) {
+    if (spliffs <= 0 || playerState.mode !== "normal") {
       showMessage("No spliffs to smoke!");
       return;
     }
     spliffs--;
+    playerState.mode = "smokingSpliff";
     updateUI();
     showMessage("You smoke a spliff. Feel the chill...");
     startSmokeEffect();
   };
 
-  // Smoke effect vars
-  let smokeParticles = [];
-  let smokeActive = false;
-
-  function startSmokeEffect() {
-    smokeActive = true;
-    smokeParticles = [];
-    for (let i = 0; i < 50; i++) {
-      smokeParticles.push({
-        x: player.x,
-        y: player.y - player.size,
-        size: Math.random() * 20 + 10,
-        alpha: 1,
-        speedX: (Math.random() - 0.5) * 1.5,
-        speedY: -(Math.random() * 1 + 0.5),
-      });
+  // Bong logic
+  fillBongBtn.onclick = () => {
+    if (weedStock < 1) {
+      showMessage("Not enough weed to fill the bong (need 1g).");
+      return;
     }
-    setTimeout(() => { smokeActive = false; }, 7000);
-  }
-
-  function updateSmoke() {
-    if (!smokeActive) return;
-    for (const p of smokeParticles) {
-      p.x += p.speedX;
-      p.y += p.speedY;
-      p.alpha -= 0.01;
-      if (p.alpha < 0) p.alpha = 0;
-    }
-    smokeParticles = smokeParticles.filter(p => p.alpha > 0);
-  }
-
-  function drawSmoke() {
-    if (!smokeActive) return;
-    ctx.fillStyle = "#ccc";
-    for (const p of smokeParticles) {
-      ctx.globalAlpha = p.alpha * 0.3;
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, p.size / 2, p.size / 3, 0, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // Main game loop
-  function gameLoop() {
-    updatePlayerPosition();
-    updateSmoke();
-    draw();
-    drawSmoke();
+    weedStock -= 1;
+    bongWeed += 1;
+    showMessage("Filled the bong with 1g of weed.");
     updateUI();
+  };
+
+  smokeBongBtn.onclick = () => {
+    if (bongWeed < 0.1) {
+      showMessage("The bong is empty! Fill it first.");
+      return;
+    }
+    bongWeed = 0;
+    playerState.mode = "smokingBong";
+    updateUI();
+    showMessage("You smoke the bong. Eyes go red...");
+    startSmokeEffect();
+  };
+
+  // Laptop UI logic
+  openLaptopBtn.onclick = () => {
+    if (playerState.mode !== "normal") return;
+    laptopUI.style.display = "block";
+    rollUI.style.display = "none";
+    buyUI.style.display = "none";
+    customerOrderUI.style.display = "none";
+    populateContacts();
+    playerState.mode = "laptop";
+    updateUI();
+  };
+
+  closeLaptopBtn.onclick = () => {
+    laptopUI.style.display = "none";
+    playerState.mode = "normal";
+    updateUI();
+  };
+
+  // Populate dealer and customer lists
+  function populateContacts() {
+    dealerListEl.innerHTML = "";
+    dealers.forEach((d, i) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.textContent = `${d.name} (${d.phone}) - $${d.pricePerGram}/g`;
+      btn.onclick = () => openBuyUI(d);
+      li.appendChild(btn);
+      dealerListEl.appendChild(li);
+    });
+
+    customerListEl.innerHTML = "";
+    customers.forEach((c, i) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.textContent = `${c.name} (${c.phone})`;
+      btn.onclick = () => openCustomerOrderUI(c);
+      li.appendChild(btn);
+      customerListEl.appendChild(li);
+    });
+  }
+
+  // Buying UI logic
+  let currentDealer = null;
+
+  function openBuyUI(dealer) {
+    laptopUI.style.display = "none";
+    buyUI.style.display = "block";
+    currentDealer = dealer;
+    pricePerGramSpan.textContent = dealer.pricePerGram.toFixed(2);
+  }
+
+  buyAmountBtns.forEach((btn) => {
+    btn.onclick = () => {
+      if (!currentDealer) return;
+      const amount = Number(btn.dataset.amount);
+      const cost = amount * currentDealer.pricePerGram;
+      if (money < cost) {
+        showMessage("Not enough money to buy that much weed.");
+        return;
+      }
+      money -= cost;
+      weedStock += amount;
+      showMessage(`Bought ${amount}g of weed for $${cost.toFixed(2)}.`);
+      buyUI.style.display = "none";
+      laptopUI.style.display = "block";
+      updateUI();
+    };
+  });
+
+  cancelBuyBtn.onclick = () => {
+    buyUI.style.display = "none";
+    laptopUI.style.display = "block";
+  };
+
+  // Customer order UI logic
+  let currentCustomer = null;
+  let customerOrderAmount = 0;
+
+  function openCustomerOrderUI(customer) {
+    currentCustomer = customer;
+    laptopUI.style.display = "none";
+    customerOrderUI.style.display = "block";
+
+    // Random order amount 2, 5, or 10g
+    const amounts = [2, 5, 10];
+    customerOrderAmount = amounts[Math.floor(Math.random() * amounts.length)];
+    customerNameSpan.textContent = customer.name;
+    customerAmountSpan.textContent = customerOrderAmount;
+  }
+
+  acceptOrderBtn.onclick = () => {
+    const pricePerGram = 15; // Selling price to customers (fixed)
+    const cost = customerOrderAmount;
+    if (weedStock < customerOrderAmount) {
+      showMessage("Not enough weed stock to fulfill order.");
+      return;
+    }
+    weedStock -= customerOrderAmount;
+    money += customerOrderAmount * pricePerGram;
+    showMessage(
+      `Sold ${customerOrderAmount}g of weed to ${currentCustomer.name} for $${(
+        customerOrderAmount * pricePerGram
+      ).toFixed(2)}.`
+    );
+    customerOrderUI.style.display = "none";
+    laptopUI.style.display = "block";
+    updateUI();
+  };
+
+  rejectOrderBtn.onclick = () => {
+    showMessage(`Rejected order from ${currentCustomer.name}.`);
+    customerOrderUI.style.display = "none";
+    laptopUI.style.display = "block";
+  };
+
+  closeOrderBtn.onclick = () => {
+    customerOrderUI.style.display = "none";
+    laptopUI.style.display = "block";
+  };
+
+  // Main game loop & animation
+  function gameLoop() {
+    // Animate rolling hands if rolling
+    if (playerState.mode === "rolling") {
+      playerState.rollTimer += 1;
+      if (playerState.rollTimer > 1000) {
+        playerState.rollTimer = 0;
+      }
+    }
+    // Smoke timer countdown
+    if (
+      playerState.mode === "smokingSpliff" ||
+      playerState.mode === "smokingBong"
+    ) {
+      playerState.smokeTimer -= 16;
+      if (playerState.smokeTimer <= 0) {
+        playerState.mode = "normal";
+      }
+    }
+
+    drawPlayer();
+    drawSmoke();
+
     requestAnimationFrame(gameLoop);
   }
 
-  // Interaction keypress (space bar)
-  window.addEventListener("keydown", (e) => {
-    keysDown[e.key] = true;
-    if (e.key === " " && !rolling && laptopUI.style.display === "none" && messageBox.style.display === "none" && buyUI.style.display === "none") {
-      checkInteractions();
-    }
-  });
-  window.addEventListener("keyup", (e) => {
-    keysDown[e.key] = false;
-  });
-
+  // Init
   updateUI();
   gameLoop();
-
 })();
 </script>
-
 </body>
 </html>
