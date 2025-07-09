@@ -3,608 +3,703 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Weed Game with Character, Spliffs & Bong</title>
+<title>Weed Dealer Game - Realistic Edition</title>
 <style>
   body {
-    font-family: Arial, sans-serif;
-    background: #222;
-    color: #eee;
-    margin: 0; padding: 0;
+    margin: 0;
+    background: #121b0f;
+    color: #aaffaa;
+    font-family: monospace, monospace;
     overflow: hidden;
+    user-select: none;
   }
   #game-container {
-    display: flex;
+    position: relative;
+    width: 100vw;
     height: 100vh;
   }
-  #game-canvas {
-    background: #2a2a2a;
-    display: block;
-    margin: 0 auto;
-    border: 2px solid #555;
-    flex-grow: 1;
-    position: relative;
-    z-index: 1;
+  /* Character styling */
+  #character {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 220px;
+    height: 320px;
+    background: linear-gradient(135deg, #2e4627, #1a2a12);
+    border-radius: 14px;
+    box-shadow: inset 0 0 15px #2a5c18;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 12px;
+    color: #aaffaa;
   }
-  #ui-panel {
-    width: 320px;
-    background: #333;
-    padding: 10px;
-    box-sizing: border-box;
-    overflow-y: auto;
+  #char-name {
+    font-size: 20px;
+    font-weight: bold;
+  }
+  #character .eyes {
+    margin-top: 32px;
+    font-size: 56px;
+    user-select: none;
+    transition: color 0.5s;
+    filter: drop-shadow(0 0 1px #88ff88);
+  }
+  #character .eyes.red {
+    color: #f22;
+    filter: drop-shadow(0 0 5px #ff2222);
+  }
+  #character .action {
+    margin-top: 20px;
+    min-height: 56px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #ccffaa;
+  }
+  #inventory {
+    margin-top: 18px;
+    font-size: 14px;
   }
   button {
-    background: #4a8cff;
+    background: #1b4e0b;
+    color: #aaffaa;
     border: none;
-    padding: 8px 12px;
-    margin: 4px 0;
-    color: white;
-    font-weight: bold;
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 5px 6px 0 6px;
     cursor: pointer;
-    border-radius: 4px;
+    font-family: monospace;
+    font-size: 15px;
+    box-shadow: 0 0 8px #1b4e0baa;
+    transition: background-color 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #3a8c18;
   }
   button:disabled {
-    background: #666;
+    background: #555a4c;
     cursor: not-allowed;
+    box-shadow: none;
   }
-  h2, h3 {
-    margin-top: 10px;
-  }
-  #messages {
-    height: 80px;
-    background: #222;
-    margin: 8px 0;
-    padding: 6px;
-    font-size: 0.9em;
+
+  /* Laptop styling */
+  #laptop-ui {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 320px;
+    height: 520px;
     overflow-y: auto;
-    border: 1px solid #555;
-    border-radius: 4px;
+    background: #003300dd;
+    border: 3px solid #55cc55;
+    border-radius: 10px;
+    padding: 14px 14px 12px 14px;
+    z-index: 10;
+    color: #aaffaa;
+    font-family: monospace;
+    font-size: 14px;
+    box-shadow:
+      0 0 10px #33ff33aa,
+      inset 0 0 30px #33ff3399;
+    animation: flickerGlow 4s infinite;
   }
-  #laptop-ui, #roll-ui, #buy-ui, #customer-order-ui {
-    background: #444;
-    padding: 8px;
-    margin-top: 10px;
-    border-radius: 6px;
-    display: none;
+  @keyframes flickerGlow {
+    0%, 100% { box-shadow: 0 0 10px #33ff33aa, inset 0 0 30px #33ff3399; }
+    50% { box-shadow: 0 0 6px #22cc22aa, inset 0 0 18px #22cc2299; }
+  }
+  #laptop-ui h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 18px;
   }
   ul {
     list-style: none;
-    padding-left: 0;
-    margin: 0;
+    padding-left: 12px;
+    margin: 6px 0 10px 0;
+    cursor: default;
+    max-height: 80px;
+    overflow-y: auto;
   }
-  ul li {
-    margin-bottom: 5px;
+  li {
+    padding: 6px 8px;
+    border-radius: 6px;
+    user-select: none;
   }
-  ul li button {
+  li:hover {
+    background: #115511cc;
+    cursor: pointer;
+  }
+  #chat-box {
+    background:#002200cc;
+    border:1px solid #44cc44;
+    border-radius: 8px;
+    margin-top: 12px;
+    padding: 10px;
+    height: 190px;
+    overflow-y:auto;
+    font-size: 13px;
+    white-space: pre-wrap;
+    line-height: 1.25;
+    box-shadow: inset 0 0 8px #33ff33cc;
+  }
+  #chat-box .system {
+    color: #66ff66;
+    font-style: italic;
+  }
+  #chat-input {
     width: 100%;
-    text-align: left;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: #114411;
+    color: #aaffaa;
+    font-family: monospace;
+    font-size: 15px;
+    box-shadow: inset 0 0 8px #33ff33cc;
   }
-  label {
-    display: block;
-    margin-top: 6px;
+  #weed-shop {
+    margin-top: 18px;
+    border-top: 1px solid #55aa55;
+    padding-top: 10px;
   }
-  input[type=range] {
-    width: 100%;
+  #weed-shop button {
+    margin: 3px 8px 6px 0;
+  }
+  #money-display {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 17px;
+    color: #ccffcc;
   }
 </style>
 </head>
 <body>
 <div id="game-container">
-  <canvas id="game-canvas" width="640" height="480"></canvas>
-  <div id="ui-panel">
-    <h2>Player Stats</h2>
-    <div><strong>Money:</strong> $<span id="money">10000</span></div>
-    <div><strong>Weed Stock:</strong> <span id="weed-stock">0.0</span> g</div>
-    <div><strong>Spliffs:</strong> <span id="spliffs">0</span></div>
-    <div><strong>Bong Weed:</strong> <span id="bong-weed">0.0</span> g</div>
-    <button id="roll-spliff-btn">Roll Spliff</button>
-    <button id="smoke-spliff-btn">Smoke Spliff</button>
-    <hr />
-    <button id="fill-bong-btn">Fill Bong with Weed (1g)</button>
-    <button id="smoke-bong-btn">Smoke Bong</button>
-    <hr />
-    <button id="open-laptop-btn">Open Laptop</button>
 
-    <div id="messages"></div>
-
-    <!-- Rolling UI -->
-    <div id="roll-ui">
-      <h3>Roll a Spliff</h3>
-      <label>Pack Amount: <span id="pack-amount-label">0%</span></label>
-      <input type="range" id="pack-amount" min="0" max="100" value="0" />
-      <label>Baccy Percentage: <span id="baccy-percent-label">0%</span></label>
-      <input type="range" id="baccy-percent" min="0" max="100" value="0" />
-      <button id="finish-roll-btn" disabled>Finish Rolling</button>
-      <button id="cancel-roll-btn">Cancel</button>
+  <!-- Character display -->
+  <div id="character" title="Your character">
+    <div id="char-name">You</div>
+    <div class="eyes" id="char-eyes">😐</div>
+    <div class="action" id="char-action">Idle</div>
+    <div id="inventory">
+      Weed: <span id="weed-amount">0g (Low:0, Med:0, High:0)</span><br />
+      Money: $<span id="money-amount">10000.00</span><br />
+      Tiredness: <span id="tiredness">0%</span>
     </div>
-
-    <!-- Laptop UI -->
-    <div id="laptop-ui">
-      <h3>Laptop Contacts</h3>
-      <strong>Dealers:</strong>
-      <ul id="dealer-list"></ul>
-      <strong>Customers:</strong>
-      <ul id="customer-list"></ul>
-      <button id="close-laptop-btn">Close Laptop</button>
+    <div>
+      <button id="roll-joint" title="Roll a joint (costs 1g weed)">Roll Joint</button>
+      <button id="smoke-joint" title="Smoke your rolled joint" disabled>Smoke Joint</button>
+      <button id="smoke-bong" title="Smoke bong using 1g weed">Smoke Bong</button>
     </div>
+  </div>
 
-    <!-- Buy UI -->
-    <div id="buy-ui">
-      <h3 id="buy-ui-title">Buy Weed</h3>
-      <p>Price per gram: $<span id="price-per-gram">10</span></p>
-      <div>
-        <button class="buy-amount-btn" data-amount="2">Buy 2g</button>
-        <button class="buy-amount-btn" data-amount="5">Buy 5g</button>
-        <button class="buy-amount-btn" data-amount="10">Buy 10g</button>
-      </div>
-      <button id="cancel-buy-btn">Cancel</button>
-    </div>
+  <!-- Laptop UI always visible -->
+  <div id="laptop-ui" title="Laptop always open">
+    <h3>Laptop Contacts</h3>
+    <strong>Dealers:</strong>
+    <ul id="dealer-list"></ul>
+    <strong>Customers:</strong>
+    <ul id="customer-list"></ul>
 
-    <!-- Customer Order UI -->
-    <div id="customer-order-ui">
-      <h3>Customer Order</h3>
-      <p><span id="customer-name"></span> wants to buy <span id="customer-amount"></span>g of weed.</p>
-      <button id="accept-order-btn">Accept Order</button>
-      <button id="reject-order-btn">Reject Order</button>
-      <button id="close-order-btn">Close</button>
+    <div id="chat-box" aria-live="polite"></div>
+    <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" aria-label="Chat input"/>
+
+    <div id="weed-shop">
+      <h4>Buy Weed</h4>
+      <div id="weed-stock-info" style="font-size:12px; margin-bottom:6px;">Dealer stock info</div>
+      <button data-quality="low" data-amount="2">Buy 2g Low ($15)</button>
+      <button data-quality="low" data-amount="5">Buy 5g Low ($35)</button>
+      <button data-quality="low" data-amount="10">Buy 10g Low ($65)</button>
+      <br />
+      <button data-quality="medium" data-amount="2">Buy 2g Medium ($25)</button>
+      <button data-quality="medium" data-amount="5">Buy 5g Medium ($55)</button>
+      <button data-quality="medium" data-amount="10">Buy 10g Medium ($100)</button>
+      <br />
+      <button data-quality="high" data-amount="2">Buy 2g High ($40)</button>
+      <button data-quality="high" data-amount="5">Buy 5g High ($90)</button>
+      <button data-quality="high" data-amount="10">Buy 10g High ($170)</button>
     </div>
   </div>
 </div>
 
 <script>
 (() => {
-  // Canvas setup
-  const canvas = document.getElementById("game-canvas");
-  const ctx = canvas.getContext("2d");
-
-  // UI elements
-  const moneySpan = document.getElementById("money");
-  const weedStockSpan = document.getElementById("weed-stock");
-  const spliffsSpan = document.getElementById("spliffs");
-  const bongWeedSpan = document.getElementById("bong-weed");
-
-  const rollSpliffBtn = document.getElementById("roll-spliff-btn");
-  const smokeSpliffBtn = document.getElementById("smoke-spliff-btn");
-  const openLaptopBtn = document.getElementById("open-laptop-btn");
-
-  const fillBongBtn = document.getElementById("fill-bong-btn");
-  const smokeBongBtn = document.getElementById("smoke-bong-btn");
-
-  const messagesDiv = document.getElementById("messages");
-
-  // Roll UI
-  const rollUI = document.getElementById("roll-ui");
-  const packAmountInput = document.getElementById("pack-amount");
-  const packAmountLabel = document.getElementById("pack-amount-label");
-  const baccyPercentInput = document.getElementById("baccy-percent");
-  const baccyPercentLabel = document.getElementById("baccy-percent-label");
-  const finishRollBtn = document.getElementById("finish-roll-btn");
-  const cancelRollBtn = document.getElementById("cancel-roll-btn");
-
-  // Laptop UI
-  const laptopUI = document.getElementById("laptop-ui");
-  const dealerListEl = document.getElementById("dealer-list");
-  const customerListEl = document.getElementById("customer-list");
-  const closeLaptopBtn = document.getElementById("close-laptop-btn");
-
-  // Buy UI
-  const buyUI = document.getElementById("buy-ui");
-  const pricePerGramSpan = document.getElementById("price-per-gram");
-  const buyAmountBtns = buyUI.querySelectorAll(".buy-amount-btn");
-  const cancelBuyBtn = document.getElementById("cancel-buy-btn");
-
-  // Customer Order UI
-  const customerOrderUI = document.getElementById("customer-order-ui");
-  const customerNameSpan = document.getElementById("customer-name");
-  const customerAmountSpan = document.getElementById("customer-amount");
-  const acceptOrderBtn = document.getElementById("accept-order-btn");
-  const rejectOrderBtn = document.getElementById("reject-order-btn");
-  const closeOrderBtn = document.getElementById("close-order-btn");
-
-  // Game state
+  // Game State
   let money = 10000;
-  let weedStock = 0;
-  let spliffs = 0;
-  let bongWeed = 0;
+  let weedInventory = { low: 0, medium: 0, high: 0 }; // grams per quality
+  let jointReady = false;
+  let tiredness = 0; // 0-100%, too high blocks smoking
+  let lastSmokeTime = 0;
+  const smokeCooldownMs = 20 * 1000; // 20 seconds cooldown between smokes
 
-  // Player character state
-  const player = {
-    x: canvas.width / 2,
-    y: canvas.height - 80,
-    size: 40,
-  };
-  const playerState = {
-    mode: "normal", // normal, rolling, smokingSpliff, smokingBong
-    smokeTimer: 0,
-    rollTimer: 0,
-  };
-
-  // Rolling spliff state
-  let rolling = false;
-  let packAmount = 0; // 0-100 percent
-  let baccyPercent = 0; // 0-100 percent
-
-  // Dealers and customers
-  const dealers = [
-    { name: "Zippy", phone: "555-WEED", pricePerGram: 10 },
-    { name: "GreenJane", phone: "555-BUDS", pricePerGram: 12 },
-    { name: "StickyRick", phone: "555-STICK", pricePerGram: 8 },
-  ];
-
-  const customers = [
-    { name: "Mike", phone: "555-MIKE" },
-    { name: "Anna", phone: "555-ANNA" },
-    { name: "Jax", phone: "555-JAX" },
-  ];
-
-  // Messaging helper
-  function showMessage(msg) {
-    const p = document.createElement("div");
-    p.textContent = msg;
-    messagesDiv.appendChild(p);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
-
-  function updateUI() {
-    moneySpan.textContent = money.toFixed(2);
-    weedStockSpan.textContent = weedStock.toFixed(2);
-    spliffsSpan.textContent = spliffs;
-    bongWeedSpan.textContent = bongWeed.toFixed(2);
-
-    // Buttons disable logic
-    smokeSpliffBtn.disabled = spliffs <= 0 || playerState.mode !== "normal";
-    rollSpliffBtn.disabled = rolling || playerState.mode !== "normal";
-    fillBongBtn.disabled = weedStock < 1 || playerState.mode !== "normal";
-    smokeBongBtn.disabled = bongWeed < 0.1 || playerState.mode !== "normal";
-    openLaptopBtn.disabled = playerState.mode !== "normal";
-  }
-
-  // Draw player function
-  function drawPlayer() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Body circle
-    ctx.fillStyle = "#ffeeaa";
-    ctx.beginPath();
-    ctx.arc(player.x, player.y - player.size / 2, player.size / 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eyes
-    const eyeY = player.y - player.size / 2 - 8;
-    const eyeOffsetX = 10;
-    ctx.fillStyle =
-      playerState.mode === "smokingSpliff" || playerState.mode === "smokingBong"
-        ? "red"
-        : "black";
-
-    // Left eye
-    ctx.beginPath();
-    ctx.ellipse(player.x - eyeOffsetX, eyeY, 5, 7, 0, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Right eye
-    ctx.beginPath();
-    ctx.ellipse(player.x + eyeOffsetX, eyeY, 5, 7, 0, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Rolling animation
-    if (playerState.mode === "rolling") {
-      const rollPhase = Math.sin(Date.now() / 200) * 10;
-      ctx.fillStyle = "#ccaa55";
-      // two rolling hands rectangles
-      ctx.fillRect(player.x - 20 + rollPhase, player.y - player.size / 2, 14, 6);
-      ctx.fillRect(player.x + 10 + rollPhase, player.y - player.size / 2, 14, 6);
+  // Dealers with stock and pricing
+  const dealers = {
+    Zippy: {
+      quality: "low",
+      stock: 50,
+      restockTimer: 0,
+      basePricePerGram: 7.5, // player buys at this price * 2 for selling price
+      phrases: [
+        "Fresh low-grade coming your way.",
+        "Cheap and cheerful buds, mate.",
+        "Running low but still got some left.",
+        "Hit me up if you want more anytime."
+      ],
+      restockInterval: 120000, // 2 mins
+    },
+    GreenJane: {
+      quality: "medium",
+      stock: 30,
+      restockTimer: 0,
+      basePricePerGram: 12.5,
+      phrases: [
+        "Got that smooth mid-grade here.",
+        "Medium quality, steady and reliable.",
+        "Don’t sleep on these buds.",
+        "Stock refresh coming soon!"
+      ],
+      restockInterval: 180000, // 3 mins
+    },
+    StickyRick: {
+      quality: "high",
+      stock: 15,
+      restockTimer: 0,
+      basePricePerGram: 20,
+      phrases: [
+        "Top shelf, high grade for connoisseurs.",
+        "Sticky Rick's best, limited stock!",
+        "Quality like this is rare, grab it fast.",
+        "More will be here soon, promise."
+      ],
+      restockInterval: 240000, // 4 mins
     }
+  };
 
-    // Bong smoking animation: show bong near mouth
-    if (playerState.mode === "smokingBong") {
-      ctx.fillStyle = "#4db8ff"; // blue bong
-      ctx.fillRect(player.x + 15, player.y - player.size / 2 + 5, 12, 25);
-      // bong bowl with smoke
-      ctx.fillStyle = "#ccc";
-      ctx.beginPath();
-      ctx.arc(player.x + 21, player.y - player.size / 2 + 5, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw smoke (simple puffs)
-      const puffCount = 6;
-      for (let i = 0; i < puffCount; i++) {
-        const x = player.x + 25 + Math.sin(Date.now() / 400 + i) * 6;
-        const y = player.y - player.size / 2 - i * 12 - (Date.now() / 300) % 10;
-        const alpha = 0.3 + 0.3 * Math.sin(Date.now() / 500 + i);
-        ctx.fillStyle = `rgba(200,200,200,${alpha.toFixed(2)})`;
-        ctx.beginPath();
-        ctx.arc(x, y, 10 - i, 0, Math.PI * 2);
-        ctx.fill();
+  // Customers with order requests & mood
+  const customers = {
+    Mike: {
+      orderAmount: 2,
+      mood: "neutral",
+      patience: 3, // number of wrong replies allowed before mood drops
+      lastOrderTime: 0,
+      orderTimeout: 60000, // 1 min max wait for delivery
+      satisfied: false,
+      phrases: {
+        neutral: "Hey, can you get me 2g?",
+        happy: "Thanks! That was great!",
+        angry: "Hey, where's my stuff?!"
+      }
+    },
+    Anna: {
+      orderAmount: 5,
+      mood: "neutral",
+      patience: 4,
+      lastOrderTime: 0,
+      orderTimeout: 90000,
+      satisfied: false,
+      phrases: {
+        neutral: "I need 5g for tonight.",
+        happy: "Delivered on time, good job!",
+        angry: "I'm disappointed, where is it?"
+      }
+    },
+    Jax: {
+      orderAmount: 10,
+      mood: "neutral",
+      patience: 5,
+      lastOrderTime: 0,
+      orderTimeout: 120000,
+      satisfied: false,
+      phrases: {
+        neutral: "10g, please.",
+        happy: "Keep the good stuff coming!",
+        angry: "Don't mess me around again!"
       }
     }
+  };
+
+  // Sell prices based on quality (higher than dealer buy price)
+  const sellPrices = {
+    low: 15,
+    medium: 30,
+    high: 50
+  };
+
+  // DOM elements
+  const weedAmountEl = document.getElementById("weed-amount");
+  const moneyAmountEl = document.getElementById("money-amount");
+  const tirednessEl = document.getElementById("tiredness");
+  const charEyes = document.getElementById("char-eyes");
+  const charAction = document.getElementById("char-action");
+  const chatBox = document.getElementById("chat-box");
+  const chatInput = document.getElementById("chat-input");
+  const dealerList = document.getElementById("dealer-list");
+  const customerList = document.getElementById("customer-list");
+  const weedShop = document.getElementById("weed-shop");
+  const smokeJointBtn = document.getElementById("smoke-joint");
+  const rollBtn = document.getElementById("roll-joint");
+  const smokeBongBtn = document.getElementById("smoke-bong");
+  const weedStockInfo = document.getElementById("weed-stock-info");
+
+  // Chat state
+  let currentChatContact = null;
+
+  // Update weed and money display nicely
+  function updateDisplays() {
+    const totalWeed = weedInventory.low + weedInventory.medium + weedInventory.high;
+    weedAmountEl.textContent = `${totalWeed}g (Low:${weedInventory.low}, Med:${weedInventory.medium}, High:${weedInventory.high})`;
+    moneyAmountEl.textContent = money.toFixed(2);
+    tirednessEl.textContent = tiredness + "%";
+    smokeJointBtn.disabled = !jointReady;
   }
 
-  // Smoke particles for spliff smoking
-  let smokeParticles = [];
-  let smokeActive = false;
-
-  function startSmokeEffect() {
-    smokeActive = true;
-    smokeParticles = [];
-    playerState.smokeTimer = 7000; // 7 seconds
-    for (let i = 0; i < 50; i++) {
-      smokeParticles.push({
-        x: player.x,
-        y: player.y - player.size / 2 - 10,
-        size: Math.random() * 20 + 10,
-        alpha: 1,
-        speedX: (Math.random() - 0.5) * 1.5,
-        speedY: -(Math.random() * 1 + 0.5),
-      });
+  // Add message to chat
+  function addChatMessage(sender, message, isSystem = false) {
+    const msgEl = document.createElement("div");
+    msgEl.textContent = `${sender}: ${message}`;
+    if (isSystem) {
+      msgEl.classList.add("system");
     }
-    setTimeout(() => {
-      smokeActive = false;
-      playerState.mode = "normal";
-      updateUI();
-    }, 7000);
+    chatBox.appendChild(msgEl);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function drawSmoke() {
-    if (!smokeActive) return;
-    for (const p of smokeParticles) {
-      ctx.fillStyle = `rgba(200,200,200,${p.alpha.toFixed(2)})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Update smoke particle
-      p.x += p.speedX;
-      p.y += p.speedY;
-      p.alpha -= 0.005;
-      if (p.alpha < 0) p.alpha = 0;
-    }
-    // Remove invisible particles
-    smokeParticles = smokeParticles.filter((p) => p.alpha > 0);
-  }
-
-  // Rolling spliff UI and logic
-  rollSpliffBtn.onclick = () => {
-    if (playerState.mode !== "normal") return;
-    rolling = true;
-    packAmount = 0;
-    baccyPercent = 0;
-    rollUI.style.display = "block";
-    finishRollBtn.disabled = true;
-    packAmountInput.value = 0;
-    packAmountLabel.textContent = "0%";
-    baccyPercentInput.value = 0;
-    baccyPercentLabel.textContent = "0%";
-    playerState.mode = "rolling";
-    updateUI();
-  };
-
-  packAmountInput.oninput = () => {
-    packAmount = Number(packAmountInput.value);
-    packAmountLabel.textContent = packAmount + "%";
-    finishRollBtn.disabled = packAmount < 50; // Require at least 50% pack
-  };
-  baccyPercentInput.oninput = () => {
-    baccyPercent = Number(baccyPercentInput.value);
-    baccyPercentLabel.textContent = baccyPercent + "%";
-  };
-
-  finishRollBtn.onclick = () => {
-    if (weedStock <= 0) {
-      showMessage("No weed to roll a spliff!");
-      return;
-    }
-    // Calculate weed needed for spliff (1g spliff max)
-    const spliffWeight = (packAmount / 100) * 1; // max 1g spliff
-    const weedNeeded = spliffWeight * (1 - baccyPercent / 100);
-    if (weedNeeded > weedStock) {
-      showMessage(`Not enough weed! Need ${weedNeeded.toFixed(2)}g.`);
-      return;
-    }
-    weedStock -= weedNeeded;
-    spliffs++;
-    rolling = false;
-    rollUI.style.display = "none";
-    playerState.mode = "normal";
-    showMessage(
-      `Rolled a spliff: ${spliffWeight.toFixed(2)}g with ${baccyPercent}% baccy.`
-    );
-    updateUI();
-  };
-
-  cancelRollBtn.onclick = () => {
-    rolling = false;
-    rollUI.style.display = "none";
-    playerState.mode = "normal";
-    updateUI();
-  };
-
-  // Smoking spliff
-  smokeSpliffBtn.onclick = () => {
-    if (spliffs <= 0 || playerState.mode !== "normal") {
-      showMessage("No spliffs to smoke!");
-      return;
-    }
-    spliffs--;
-    playerState.mode = "smokingSpliff";
-    updateUI();
-    showMessage("You smoke a spliff. Feel the chill...");
-    startSmokeEffect();
-  };
-
-  // Bong logic
-  fillBongBtn.onclick = () => {
-    if (weedStock < 1) {
-      showMessage("Not enough weed to fill the bong (need 1g).");
-      return;
-    }
-    weedStock -= 1;
-    bongWeed += 1;
-    showMessage("Filled the bong with 1g of weed.");
-    updateUI();
-  };
-
-  smokeBongBtn.onclick = () => {
-    if (bongWeed < 0.1) {
-      showMessage("The bong is empty! Fill it first.");
-      return;
-    }
-    bongWeed = 0;
-    playerState.mode = "smokingBong";
-    updateUI();
-    showMessage("You smoke the bong. Eyes go red...");
-    startSmokeEffect();
-  };
-
-  // Laptop UI logic
-  openLaptopBtn.onclick = () => {
-    if (playerState.mode !== "normal") return;
-    laptopUI.style.display = "block";
-    rollUI.style.display = "none";
-    buyUI.style.display = "none";
-    customerOrderUI.style.display = "none";
-    populateContacts();
-    playerState.mode = "laptop";
-    updateUI();
-  };
-
-  closeLaptopBtn.onclick = () => {
-    laptopUI.style.display = "none";
-    playerState.mode = "normal";
-    updateUI();
-  };
-
-  // Populate dealer and customer lists
+  // Populate dealer and customer lists dynamically
   function populateContacts() {
-    dealerListEl.innerHTML = "";
-    dealers.forEach((d, i) => {
+    dealerList.innerHTML = "";
+    for (const d in dealers) {
       const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.textContent = `${d.name} (${d.phone}) - $${d.pricePerGram}/g`;
-      btn.onclick = () => openBuyUI(d);
-      li.appendChild(btn);
-      dealerListEl.appendChild(li);
-    });
-
-    customerListEl.innerHTML = "";
-    customers.forEach((c, i) => {
+      li.textContent = `${d} - Stock: ${dealers[d].stock}g (${dealers[d].quality})`;
+      li.dataset.type = "dealer";
+      li.dataset.name = d;
+      dealerList.appendChild(li);
+    }
+    customerList.innerHTML = "";
+    for (const c in customers) {
       const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.textContent = `${c.name} (${c.phone})`;
-      btn.onclick = () => openCustomerOrderUI(c);
-      li.appendChild(btn);
-      customerListEl.appendChild(li);
-    });
+      li.textContent = `${c} - Wants ${customers[c].orderAmount}g`;
+      li.dataset.type = "customer";
+      li.dataset.name = c;
+      customerList.appendChild(li);
+    }
   }
 
-  // Buying UI logic
-  let currentDealer = null;
-
-  function openBuyUI(dealer) {
-    laptopUI.style.display = "none";
-    buyUI.style.display = "block";
-    currentDealer = dealer;
-    pricePerGramSpan.textContent = dealer.pricePerGram.toFixed(2);
+  // Open chat with contact
+  function openChat(contactType, contactName) {
+    currentChatContact = { type: contactType, name: contactName };
+    chatBox.innerHTML = "";
+    if (contactType === "dealer") {
+      addChatMessage(contactName, dealers[contactName].phrases[Math.floor(Math.random()*dealers[contactName].phrases.length)]);
+      updateWeedShopButtons();
+    } else if (contactType === "customer") {
+      const c = customers[contactName];
+      addChatMessage(contactName, c.phrases.neutral);
+      c.lastOrderTime = Date.now();
+      c.satisfied = false;
+      c.mood = "neutral";
+      c.patience = 3 + Math.floor(Math.random()*3); // random patience between 3 and 5
+    }
   }
 
-  buyAmountBtns.forEach((btn) => {
-    btn.onclick = () => {
-      if (!currentDealer) return;
-      const amount = Number(btn.dataset.amount);
-      const cost = amount * currentDealer.pricePerGram;
-      if (money < cost) {
-        showMessage("Not enough money to buy that much weed.");
+  // Update buy buttons disabled state based on dealer stock & money & quality
+  function updateWeedShopButtons() {
+    if (!currentChatContact || currentChatContact.type !== "dealer") return;
+    const dealer = dealers[currentChatContact.name];
+    // Show dealer stock info
+    weedStockInfo.textContent = `${currentChatContact.name} stock: ${dealer.stock}g (${dealer.quality} quality)`;
+    // Prices for quantities depend on quality & dealer base price, show dynamically
+    const prices = {
+      low: { 2: 15, 5: 35, 10: 65 },
+      medium: { 2: 25, 5: 55, 10: 100 },
+      high: { 2: 40, 5: 90, 10: 170 }
+    };
+    // Loop buttons and enable/disable if dealer has stock & you have money
+    const buttons = weedShop.querySelectorAll("button");
+    buttons.forEach(btn => {
+      if (btn.dataset.quality !== dealer.quality) {
+        btn.disabled = true;
         return;
       }
-      money -= cost;
-      weedStock += amount;
-      showMessage(`Bought ${amount}g of weed for $${cost.toFixed(2)}.`);
-      buyUI.style.display = "none";
-      laptopUI.style.display = "block";
-      updateUI();
-    };
-  });
-
-  cancelBuyBtn.onclick = () => {
-    buyUI.style.display = "none";
-    laptopUI.style.display = "block";
-  };
-
-  // Customer order UI logic
-  let currentCustomer = null;
-  let customerOrderAmount = 0;
-
-  function openCustomerOrderUI(customer) {
-    currentCustomer = customer;
-    laptopUI.style.display = "none";
-    customerOrderUI.style.display = "block";
-
-    // Random order amount 2, 5, or 10g
-    const amounts = [2, 5, 10];
-    customerOrderAmount = amounts[Math.floor(Math.random() * amounts.length)];
-    customerNameSpan.textContent = customer.name;
-    customerAmountSpan.textContent = customerOrderAmount;
+      const amount = parseInt(btn.dataset.amount);
+      const price = prices[dealer.quality][amount];
+      btn.disabled = dealer.stock < amount || money < price;
+    });
   }
 
-  acceptOrderBtn.onclick = () => {
-    const pricePerGram = 15; // Selling price to customers (fixed)
-    const cost = customerOrderAmount;
-    if (weedStock < customerOrderAmount) {
-      showMessage("Not enough weed stock to fulfill order.");
+  // Buy weed from dealer
+  weedShop.addEventListener("click", e => {
+    if (e.target.tagName === "BUTTON" && currentChatContact && currentChatContact.type === "dealer") {
+      const dealer = dealers[currentChatContact.name];
+      const quality = e.target.dataset.quality;
+      const amount = parseInt(e.target.dataset.amount);
+      // Price calculation - could be dynamic but fixed for simplicity here
+      const priceTable = {
+        low: { 2: 15, 5: 35, 10: 65 },
+        medium: { 2: 25, 5: 55, 10: 100 },
+        high: { 2: 40, 5: 90, 10: 170 }
+      };
+      const price = priceTable[quality][amount];
+      if (dealer.stock >= amount && money >= price && dealer.quality === quality) {
+        dealer.stock -= amount;
+        money -= price;
+        weedInventory[quality] += amount;
+        addChatMessage("System", `Bought ${amount}g ${quality} weed for $${price.toFixed(2)}.`, true);
+        updateDisplays();
+        updateWeedShopButtons();
+        populateContacts();
+      } else {
+        addChatMessage("System", `Cannot buy ${amount}g ${quality} weed. Check stock and money.`, true);
+      }
+    }
+  });
+
+  // Dealer restock mechanic, called periodically
+  function restockDealers(deltaTime) {
+    for (const d in dealers) {
+      const dealer = dealers[d];
+      dealer.restockTimer += deltaTime;
+      if (dealer.restockTimer >= dealer.restockInterval) {
+        // Restock some amount randomly
+        const restockAmount = Math.floor(Math.random() * 10) + 5;
+        dealer.stock = Math.min(dealer.stock + restockAmount, 50);
+        dealer.restockTimer = 0;
+        addChatMessage("System", `${d} has restocked ${restockAmount}g of ${dealer.quality} weed.`, true);
+        if (currentChatContact && currentChatContact.type === "dealer" && currentChatContact.name === d) {
+          updateWeedShopButtons();
+        }
+        populateContacts();
+      }
+    }
+  }
+
+  // Customer order timeout & mood mechanic
+  function updateCustomers(deltaTime) {
+    const now = Date.now();
+    for (const c in customers) {
+      const cust = customers[c];
+      if (!cust.satisfied && cust.lastOrderTime > 0) {
+        if (now - cust.lastOrderTime > cust.orderTimeout) {
+          // Customer gets angry and sends angry message
+          if (cust.mood !== "angry") {
+            cust.mood = "angry";
+            addChatMessage(c, cust.phrases.angry);
+          }
+        }
+      }
+    }
+  }
+
+  // Deliver weed to customer
+  function deliverWeed(customerName, amount, quality) {
+    const cust = customers[customerName];
+    if (!cust) {
+      addChatMessage("System", "Customer not found.", true);
       return;
     }
-    weedStock -= customerOrderAmount;
-    money += customerOrderAmount * pricePerGram;
-    showMessage(
-      `Sold ${customerOrderAmount}g of weed to ${currentCustomer.name} for $${(
-        customerOrderAmount * pricePerGram
-      ).toFixed(2)}.`
-    );
-    customerOrderUI.style.display = "none";
-    laptopUI.style.display = "block";
-    updateUI();
-  };
+    if (weedInventory[quality] < amount) {
+      addChatMessage("System", `Not enough ${quality} weed to deliver.`, true);
+      return;
+    }
+    // Deduct weed from inventory
+    weedInventory[quality] -= amount;
+    // Calculate sale price
+    const salePrice = sellPrices[quality] * amount;
+    money += salePrice;
+    cust.satisfied = true;
+    cust.mood = "happy";
+    cust.lastOrderTime = 0;
+    addChatMessage(customerName, cust.phrases.happy);
+    addChatMessage("System", `Delivered ${amount}g ${quality} weed to ${customerName} for $${salePrice.toFixed(2)}.`, true);
+    updateDisplays();
+    populateContacts();
+  }
 
-  rejectOrderBtn.onclick = () => {
-    showMessage(`Rejected order from ${currentCustomer.name}.`);
-    customerOrderUI.style.display = "none";
-    laptopUI.style.display = "block";
-  };
+  // Chat input send handler
+  chatInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && currentChatContact) {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      addChatMessage("You", msg);
+      processChatMessage(currentChatContact, msg);
+      chatInput.value = "";
+    }
+  });
 
-  closeOrderBtn.onclick = () => {
-    customerOrderUI.style.display = "none";
-    laptopUI.style.display = "block";
-  };
+  // Process chat messages differently for dealers and customers
+  function processChatMessage(contact, message) {
+    if (contact.type === "dealer") {
+      processDealerMessage(contact.name, message);
+    } else if (contact.type === "customer") {
+      processCustomerMessage(contact.name, message);
+    }
+  }
 
-  // Main game loop & animation
+  // Dealer message processing - buy weed from them
+  function processDealerMessage(dealerName, message) {
+    const dealer = dealers[dealerName];
+    const msgLower = message.toLowerCase();
+    // Example dealer phrases handling
+    if (msgLower.includes("stock")) {
+      addChatMessage(dealerName, `I have ${dealer.stock}g of ${dealer.quality} quality weed.`);
+    } else if (msgLower.includes("price")) {
+      addChatMessage(dealerName, `Price per gram is about $${(dealer.basePricePerGram*2).toFixed(2)}.`);
+    } else if (msgLower.includes("buy")) {
+      addChatMessage(dealerName, "Use the buy buttons below to purchase weed.");
+    } else {
+      addChatMessage(dealerName, dealer.phrases[Math.floor(Math.random()*dealer.phrases.length)]);
+    }
+  }
+
+  // Customer message processing - deliver orders & handle mood
+  function processCustomerMessage(customerName, message) {
+    const cust = customers[customerName];
+    const msgLower = message.toLowerCase();
+    // If message contains 'deliver' or 'here' or 'weed', try to deliver
+    if (msgLower.includes("deliver") || msgLower.includes("weed") || msgLower.includes("here")) {
+      if (cust.satisfied) {
+        addChatMessage(customerName, "You already delivered my order.");
+        return;
+      }
+      // Try deliver best available quality weed for their order amount
+      let qualityToDeliver = "low";
+      if (weedInventory.high >= cust.orderAmount) qualityToDeliver = "high";
+      else if (weedInventory.medium >= cust.orderAmount) qualityToDeliver = "medium";
+      else if (weedInventory.low >= cust.orderAmount) qualityToDeliver = "low";
+      else {
+        addChatMessage("System", `You do not have enough weed for ${customerName}'s order.`);
+        cust.patience--;
+        if (cust.patience <= 0) {
+          cust.mood = "angry";
+          addChatMessage(customerName, cust.phrases.angry);
+        }
+        return;
+      }
+      deliverWeed(customerName, cust.orderAmount, qualityToDeliver);
+    } else {
+      addChatMessage(customerName, cust.phrases.neutral);
+      cust.patience--;
+      if (cust.patience <= 0) {
+        cust.mood = "angry";
+        addChatMessage(customerName, cust.phrases.angry);
+      }
+    }
+  }
+
+  // Character actions for smoking/rolling joint
+  rollBtn.addEventListener("click", () => {
+    // Can only roll joint if weed >=1g any quality
+    const totalWeed = weedInventory.low + weedInventory.medium + weedInventory.high;
+    if (totalWeed < 1) {
+      charAction.textContent = "No weed to roll joint.";
+      return;
+    }
+    // Consume 1g from best quality first
+    if (weedInventory.high >= 1) weedInventory.high -= 1;
+    else if (weedInventory.medium >= 1) weedInventory.medium -= 1;
+    else weedInventory.low -= 1;
+    jointReady = true;
+    charAction.textContent = "Joint rolled, ready to smoke!";
+    updateDisplays();
+  });
+
+  smokeJointBtn.addEventListener("click", () => {
+    if (!jointReady) return;
+    if (tiredness >= 100) {
+      charAction.textContent = "Too tired to smoke!";
+      return;
+    }
+    const now = Date.now();
+    if (now - lastSmokeTime < smokeCooldownMs) {
+      charAction.textContent = "Need to wait before smoking again.";
+      return;
+    }
+    jointReady = false;
+    lastSmokeTime = now;
+    charAction.textContent = "Smoking joint... 😵‍💫";
+    charEyes.classList.add("red");
+    tiredness = Math.min(tiredness + 15, 100);
+    updateDisplays();
+    smokeJointBtn.disabled = true;
+    rollBtn.disabled = false;
+
+    setTimeout(() => {
+      charAction.textContent = "Feeling relaxed.";
+      charEyes.classList.remove("red");
+      updateDisplays();
+    }, 8000);
+  });
+
+  smokeBongBtn.addEventListener("click", () => {
+    if (tiredness >= 100) {
+      charAction.textContent = "Too tired to smoke bong!";
+      return;
+    }
+    // Consume 1g weed from best quality
+    if (weedInventory.high >= 1) weedInventory.high -= 1;
+    else if (weedInventory.medium >= 1) weedInventory.medium -= 1;
+    else if (weedInventory.low >= 1) weedInventory.low -= 1;
+    else {
+      charAction.textContent = "No weed to smoke bong.";
+      return;
+    }
+    const now = Date.now();
+    if (now - lastSmokeTime < smokeCooldownMs) {
+      charAction.textContent = "Need to wait before smoking again.";
+      return;
+    }
+    lastSmokeTime = now;
+    charAction.textContent = "Smoking bong... 😵‍💫";
+    charEyes.classList.add("red");
+    tiredness = Math.min(tiredness + 25, 100);
+    updateDisplays();
+
+    setTimeout(() => {
+      charAction.textContent = "Bong hit done.";
+      charEyes.classList.remove("red");
+      updateDisplays();
+    }, 10000);
+  });
+
+  // Clicking dealers or customers opens chat
+  dealerList.addEventListener("click", e => {
+    if (e.target.tagName === "LI") {
+      openChat("dealer", e.target.dataset.name);
+      updateWeedShopButtons();
+    }
+  });
+  customerList.addEventListener("click", e => {
+    if (e.target.tagName === "LI") {
+      openChat("customer", e.target.dataset.name);
+    }
+  });
+
+  // Periodic game loop (for restocking, customer moods)
+  let lastUpdate = Date.now();
   function gameLoop() {
-    // Animate rolling hands if rolling
-    if (playerState.mode === "rolling") {
-      playerState.rollTimer += 1;
-      if (playerState.rollTimer > 1000) {
-        playerState.rollTimer = 0;
-      }
-    }
-    // Smoke timer countdown
-    if (
-      playerState.mode === "smokingSpliff" ||
-      playerState.mode === "smokingBong"
-    ) {
-      playerState.smokeTimer -= 16;
-      if (playerState.smokeTimer <= 0) {
-        playerState.mode = "normal";
-      }
-    }
+    const now = Date.now();
+    const delta = now - lastUpdate;
+    lastUpdate = now;
 
-    drawPlayer();
-    drawSmoke();
+    restockDealers(delta);
+    updateCustomers(delta);
+
+    updateDisplays();
 
     requestAnimationFrame(gameLoop);
   }
 
-  // Init
-  updateUI();
+  // Initialize UI
+  populateContacts();
+  updateDisplays();
+  openChat("dealer", "Zippy"); // default chat open
+
   gameLoop();
 })();
 </script>
+
 </body>
 </html>
