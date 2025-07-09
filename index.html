@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Weed Dealer Simulator - Buy, Sell & Smoke Bong</title>
+<title>Weed Dealer Simulator - Buy, Sell, Smoke Bong & Spliff</title>
 <style>
   body {
     background: #222;
@@ -143,6 +143,25 @@
   #bong-controls button {
     margin-left: 15px;
   }
+  #spliff-controls {
+    margin-top: 12px;
+    text-align: center;
+  }
+  #spliff-controls button {
+    background: #33cc33;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #111;
+    font-size: 16px;
+    user-select: none;
+    transition: background 0.3s;
+  }
+  #spliff-controls button:hover {
+    background: #44dd44;
+  }
 </style>
 </head>
 <body>
@@ -181,6 +200,10 @@
     <button id="smoke-bong-btn">Smoke Bong</button>
   </div>
 
+  <div id="spliff-controls">
+    <button id="roll-smoke-spliff-btn">Roll & Smoke Spliff</button>
+  </div>
+
   <div id="status"></div>
   <div id="inventory"></div>
 </div>
@@ -198,6 +221,7 @@
   const tobaccoInput = document.getElementById('tobacco-in-bong');
   const fillBongBtn = document.getElementById('fill-bong-btn');
   const smokeBongBtn = document.getElementById('smoke-bong-btn');
+  const rollSmokeSpliffBtn = document.getElementById('roll-smoke-spliff-btn');
 
   let money = 10000;
   let weed = 0;       // grams
@@ -255,27 +279,31 @@
     statusEl.textContent = msg;
   }
 
-  // Character animation for smoking bong
-  function startSmoking() {
+  // Character animation for smoking (bong or spliff)
+  function startSmoking(duration = 5000) {
     if (isSmoking) return;
+    isSmoking = true;
+    characterEl.classList.add('smoking');
+    updateStatus("Smoking... 🔥 Eyes are red 👀");
+
+    setTimeout(() => {
+      characterEl.classList.remove('smoking');
+      updateStatus("Finished smoking.");
+      isSmoking = false;
+      updateInventory();
+    }, duration);
+  }
+
+  // Bong smoke flow
+  function smokeBong() {
     if (weedInBong <= 0) {
       updateStatus("Your bong has no weed!");
       return;
     }
-    isSmoking = true;
-    characterEl.classList.add('smoking');
-    updateStatus("Smoking bong... 🔥 Eyes are red 👀");
-
-    // Simulate smoking duration 5 seconds
-    setTimeout(() => {
-      characterEl.classList.remove('smoking');
-      updateStatus("Finished smoking the bong.");
-      // Weed & tobacco in bong consumed
-      weedInBong = 0;
-      tobaccoInBong = 0;
-      updateInventory();
-      isSmoking = false;
-    }, 5000);
+    startSmoking(5000);
+    // Consume weed & tobacco in bong
+    weedInBong = 0;
+    tobaccoInBong = 0;
   }
 
   // Put weed and tobacco into bong
@@ -298,210 +326,181 @@
       updateStatus("You don't have enough tobacco.");
       return;
     }
-    if (w + t === 0) {
-      updateStatus("Put some weed or tobacco in the bong.");
-      return;
-    }
-    // Fill bong
     weed -= w;
     tobacco -= t;
     weedInBong += w;
     tobaccoInBong += t;
     updateInventory();
-    updateStatus(`Added ${w.toFixed(2)}g weed and ${t.toFixed(2)}g tobacco to the bong.`);
+    updateStatus(`Bong filled with ${w.toFixed(2)}g weed and ${t.toFixed(2)}g tobacco.`);
   }
 
-  // Handle buying weed or items from dealer
-  function buyFromDealer(type, amount) {
-    let cost = 0;
-    if (type === 'weed') {
-      cost = dealerPrices.weed[amount];
-      if (money < cost) {
-        updateStatus("Not enough money to buy weed.");
-        return;
-      }
-      weed += amount;
-      money -= cost;
-      addMessage(`Dealer: Sold you ${amount}g weed for $${cost}.`, 'dealer');
-      updateStatus(`Bought ${amount}g weed for $${cost}.`);
-    } else if (type === 'bong') {
-      cost = dealerPrices.bong;
-      if (money < cost) {
-        updateStatus("Not enough money to buy a bong.");
-        return;
-      }
-      bongs++;
-      money -= cost;
-      addMessage(`Dealer: Sold you a bong for $${cost}.`, 'dealer');
-      updateStatus("Bought a bong.");
-    } else if (type === 'tobacco') {
-      cost = dealerPrices.tobacco;
-      if (money < cost) {
-        updateStatus("Not enough money to buy tobacco.");
-        return;
-      }
-      tobacco += 10;
-      money -= cost;
-      addMessage(`Dealer: Sold you 10g tobacco for $${cost}.`, 'dealer');
-      updateStatus("Bought 10g tobacco.");
-    }
-    updateInventory();
-  }
-
-  // Handle selling weed to customer
-  function sellToCustomer(amount) {
-    if (!currentCustomer) {
-      updateStatus("No customer is currently requesting.");
-      return;
-    }
-    if (amount !== currentCustomer.demand) {
-      updateStatus(`Customer wants exactly ${currentCustomer.demand}g weed.`);
-      return;
-    }
-    if (weed < amount) {
-      updateStatus("You don't have enough weed to sell.");
-      return;
-    }
-    const income = sellPrices[amount];
-    weed -= amount;
-    money += income;
-    addMessage(`You: Sold ${amount}g weed to ${currentCustomer.name} for $${income}.`, 'player');
-    addMessage(`${currentCustomer.name}: Thanks!`, 'customer');
-    updateStatus(`Sold ${amount}g weed for $${income}.`);
-    updateInventory();
-    currentCustomer = null;
-    waitingForSellAnswer = false;
-    setTimeout(nextCustomer, 2000);
-  }
-
-  // Next customer interaction
+  // Customer interaction
   function nextCustomer() {
-    if (currentCustomer) return;
-    const cust = customers.shift();
-    if (!cust) {
-      addMessage("No more customers right now.", "dealer");
-      updateStatus("No customers waiting.");
+    if (customers.length === 0) {
+      addMessage("No more customers for now.", 'dealer');
+      currentCustomer = null;
+      waitingForSellAnswer = false;
+      updateStatus("No customers right now.");
       return;
     }
-    currentCustomer = cust;
-    customers.push(cust); // put customer back for repeated loop
-    addMessage(`${cust.name}: Hey, I need ${cust.demand}g of weed. You got it?`, 'customer');
-    updateStatus(`Customer wants ${cust.demand}g weed. Use Sell buttons or chat.`);
+    currentCustomer = customers.shift();
+    addMessage(`${currentCustomer.name}: I want ${currentCustomer.demand}g of weed.`, 'customer');
+    updateStatus(`Customer waiting: ${currentCustomer.name} wants ${currentCustomer.demand}g.`);
     waitingForSellAnswer = true;
   }
 
-  // Process player chat input
-  function processChatInput(text) {
-    const lower = text.trim().toLowerCase();
-
-    addMessage(`You: ${text}`, 'player');
-
-    // Basic commands for buying weed, bongs, tobacco from dealer
-    if (lower.includes('buy weed')) {
-      if (lower.includes('2g') || lower.includes('2')) {
-        buyFromDealer('weed', 2);
-        return;
-      } else if (lower.includes('5g') || lower.includes('5')) {
-        buyFromDealer('weed', 5);
-        return;
-      } else if (lower.includes('10g') || lower.includes('10')) {
-        buyFromDealer('weed', 10);
-        return;
-      } else {
-        addMessage("Dealer: We have 2g, 5g, and 10g packs.", 'dealer');
-        return;
-      }
-    }
-    if (lower.includes('buy bong')) {
-      buyFromDealer('bong');
+  function sellToCustomer(grams) {
+    if (!currentCustomer) {
+      updateStatus("No customer to sell to.");
       return;
     }
-    if (lower.includes('buy tobacco')) {
-      buyFromDealer('tobacco');
+    if (grams !== currentCustomer.demand) {
+      addMessage(`${currentCustomer.name}: I want exactly ${currentCustomer.demand}g, not ${grams}g.`, 'customer');
+      updateStatus(`Customer wants exactly ${currentCustomer.demand}g weed.`);
       return;
     }
-    if (lower.includes('sell')) {
-      if (!waitingForSellAnswer || !currentCustomer) {
-        updateStatus("No customer currently to sell to.");
-        return;
-      }
-      // Check amount in message
-      let amount = null;
-      if (lower.includes('2g') || lower.includes('2')) amount = 2;
-      else if (lower.includes('5g') || lower.includes('5')) amount = 5;
-      else if (lower.includes('10g') || lower.includes('10')) amount = 10;
-
-      if (amount === currentCustomer.demand) {
-        sellToCustomer(amount);
-      } else {
-        addMessage(`${currentCustomer.name}: I want exactly ${currentCustomer.demand}g, not ${amount}g.`, 'customer');
-        updateStatus(`Customer wants exactly ${currentCustomer.demand}g weed.`);
-      }
+    if (weed < grams) {
+      updateStatus("You don't have enough weed to sell.");
       return;
     }
-    if (lower.includes('smoke bong')) {
-      startSmoking();
-      return;
-    }
-    if (lower.includes('help')) {
-      addMessage("Dealer: Commands you can use in chat:", 'dealer');
-      addMessage("- buy weed 2g / 5g / 10g", 'dealer');
-      addMessage("- buy bong", 'dealer');
-      addMessage("- buy tobacco", 'dealer');
-      addMessage("- sell 2g / 5g / 10g", 'dealer');
-      addMessage("- smoke bong", 'dealer');
-      return;
-    }
-    addMessage("Dealer: I didn't understand that. Type 'help' for commands.", 'dealer');
+    weed -= grams;
+    const profit = sellPrices[grams];
+    money += profit;
+    addMessage(`You sold ${grams}g weed to ${currentCustomer.name} for $${profit}.`, 'player');
+    updateInventory();
+    currentCustomer = null;
+    waitingForSellAnswer = false;
+    updateStatus("Waiting for next customer...");
+    setTimeout(nextCustomer, 3000);
   }
 
-  // Event listeners
+  // Parse chat commands
+  function handleChatCommand(text) {
+    text = text.toLowerCase().trim();
+    if (text === "help") {
+      addMessage("Commands: buy weed 2g/5g/10g, buy bong, buy tobacco, sell 2g/5g/10g, smoke bong, roll smoke spliff", 'dealer');
+      return;
+    }
+    if (text.startsWith("buy weed")) {
+      const grams = parseInt(text.match(/\d+/));
+      if ([2,5,10].includes(grams)) {
+        buyWeed(grams);
+      } else {
+        addMessage("Dealer: We only sell 2g, 5g, or 10g packs.", 'dealer');
+      }
+      return;
+    }
+    if (text === "buy bong") {
+      buyBong();
+      return;
+    }
+    if (text === "buy tobacco") {
+      buyTobacco();
+      return;
+    }
+    if (text.startsWith("sell")) {
+      const grams = parseInt(text.match(/\d+/));
+      if ([2,5,10].includes(grams)) {
+        if (waitingForSellAnswer && currentCustomer) {
+          sellToCustomer(grams);
+        } else {
+          addMessage("No customer waiting or wrong amount.", 'dealer');
+        }
+      } else {
+        addMessage("You can only sell 2g, 5g or 10g at a time.", 'dealer');
+      }
+      return;
+    }
+    if (text === "smoke bong") {
+      smokeBong();
+      return;
+    }
+    if (text === "roll smoke spliff") {
+      rollAndSmokeSpliff();
+      return;
+    }
+    addMessage("Dealer: Unknown command. Type 'help' for options.", 'dealer');
+  }
+
+  // Buy functions
+  function buyWeed(grams) {
+    const cost = dealerPrices.weed[grams];
+    if (money < cost) {
+      updateStatus("Not enough money to buy weed.");
+      return;
+    }
+    money -= cost;
+    weed += grams;
+    addMessage(`You bought ${grams}g weed for $${cost}.`, 'player');
+    updateInventory();
+  }
+
+  function buyBong() {
+    if (money < dealerPrices.bong) {
+      updateStatus("Not enough money to buy a bong.");
+      return;
+    }
+    money -= dealerPrices.bong;
+    bongs++;
+    addMessage("You bought a bong.", 'player');
+    updateInventory();
+  }
+
+  function buyTobacco() {
+    if (money < dealerPrices.tobacco) {
+      updateStatus("Not enough money to buy tobacco.");
+      return;
+    }
+    money -= dealerPrices.tobacco;
+    tobacco += 10;
+    addMessage("You bought 10g tobacco.", 'player');
+    updateInventory();
+  }
+
+  // Spliff: roll & smoke = mix weed + tobacco from inventory, consume 1g each minimum, else error
+  function rollAndSmokeSpliff() {
+    if (weed < 1 || tobacco < 1) {
+      updateStatus("Need at least 1g weed and 1g tobacco to roll a spliff.");
+      return;
+    }
+    weed -= 1;
+    tobacco -= 1;
+    updateInventory();
+    addMessage("You rolled a spliff and start smoking...", 'player');
+    startSmoking(4000);
+  }
+
+  // Button handlers
   sendBtn.addEventListener('click', () => {
     const text = chatInput.value.trim();
-    if (text) {
-      processChatInput(text);
-      chatInput.value = '';
-    }
+    if (!text) return;
+    addMessage(`You: ${text}`, 'player');
+    handleChatCommand(text);
+    chatInput.value = '';
   });
-  chatInput.addEventListener('keydown', (e) => {
+  chatInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendBtn.click();
   });
 
   actionButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const action = btn.dataset.action;
-      if (action.startsWith('buy-weed-')) {
-        const grams = parseInt(action.replace('buy-weed-', ''), 10);
-        buyFromDealer('weed', grams);
-      } else if (action === 'buy-bong') {
-        buyFromDealer('bong');
-      } else if (action === 'buy-tobacco') {
-        buyFromDealer('tobacco');
-      } else if (action.startsWith('sell-')) {
-        const grams = parseInt(action.replace('sell-', '').replace('g', ''), 10);
-        if (!waitingForSellAnswer || !currentCustomer) {
-          updateStatus("No customer currently to sell to.");
-          return;
-        }
-        if (grams === currentCustomer.demand) {
-          sellToCustomer(grams);
-        } else {
-          addMessage(`${currentCustomer.name}: I want exactly ${currentCustomer.demand}g, not ${grams}g.`, 'customer');
-          updateStatus(`Customer wants exactly ${currentCustomer.demand}g weed.`);
-        }
-      }
+      if (action === 'buy-weed-2') buyWeed(2);
+      else if (action === 'buy-weed-5') buyWeed(5);
+      else if (action === 'buy-weed-10') buyWeed(10);
+      else if (action === 'buy-bong') buyBong();
+      else if (action === 'buy-tobacco') buyTobacco();
+      else if (action === 'sell-2g') sellToCustomer(2);
+      else if (action === 'sell-5g') sellToCustomer(5);
+      else if (action === 'sell-10g') sellToCustomer(10);
     });
   });
 
-  fillBongBtn.addEventListener('click', () => {
-    fillBong();
-  });
+  fillBongBtn.addEventListener('click', fillBong);
+  smokeBongBtn.addEventListener('click', smokeBong);
+  rollSmokeSpliffBtn.addEventListener('click', rollAndSmokeSpliff);
 
-  smokeBongBtn.addEventListener('click', () => {
-    startSmoking();
-  });
-
-  // Start simulation
+  // Start game
   addMessage("Dealer: Welcome! You have $10,000 to start.", 'dealer');
   addMessage("Dealer: Use chat or buttons to buy weed, bongs, and tobacco.", 'dealer');
   addMessage("Dealer: Customers will come asking for weed. Sell to them for profit!", 'dealer');
@@ -513,4 +512,3 @@
 
 </body>
 </html>
-
